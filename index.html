@@ -1,0 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <title>MGT Configurator Pro</title>
+    <style>
+    :root {
+        --bg-primary: #000000;
+        --bg-secondary: #1c1c1e;
+        --bg-tertiary: #2c2c2e;
+        --accent: #0a84ff;
+        --text-primary: #ffffff;
+        --text-secondary: #98989f;
+        --border: #38383a;
+        --main-blade: #ff375f;
+
+        --link-green: #30d15880;
+        --link-blue: #5e9eff80;
+        --hover: #2c2c2e;
+        --selection: #0a84ff33;
+
+        / Two shades of blue for SLR and QPLL
+        /
+        --slr-blue-dark: #4d5d75;
+        --slr-blue-light: #435166;
+        --slr-blue-dark-bg: #4d5d75;
+        --slr-blue-light-bg: #435166;
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        padding: 10px;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: var(--bg-secondary);
+        padding: 12px;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .title {
+        font-size: 20px;
+        font-weight: 600;
+        background: linear-gradient(90deg, var(--accent), #5e9eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .controls {
+        display: flex;
+        gap: 8px;
+    }
+    .mgt-grid td.sector,
+    .mgt-grid td[class*="qpll-"] {
+        text-align: center;
+        vertical-align: middle;
+        font-weight: 500;
+    }
+    .button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--text-primary);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 12px;
+    }
+
+    .button:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+    }
+
+    .mgt-grid {
+        border-collapse: separate;
+        border-spacing: 1px;
+        width: 100%;
+        table-layout: fixed;
+        background: var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .mgt-grid th {
+        background: var(--bg-tertiary);
+        padding: 8px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .mgt-grid td {
+        background: var(--bg-secondary);
+        padding: 6px;
+        text-align: center;
+        font-size: 10px;
+        transition: all 0.15s ease;
+    }
+
+    .selectable {
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .selectable:hover {
+        background: var(--hover);
+    }
+
+    .selectable.selected {
+        background: var(--selection);
+        box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .main-blade {
+        background: var(--main-blade) !important;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .sector {
+        background: var(--bg-tertiary) !important;
+        font-weight: 500;
+        color: var(--text-secondary);
+        / Remove grid ruling for sector column
+        /
+        border-right: none;
+    }
+
+
+    .link-green {
+        color: var(--text-primary);
+        background: var(--link-green) !important;
+    }
+
+    .link-blue {
+        color: var(--text-primary);
+        background: var(--link-blue) !important;
+    }
+
+    .slr-marker {
+        / Removed right and absolute positioning
+        /
+        font-weight: bold; / Make it bold
+        /
+        color: var(--accent);
+        font-size: 14px; / Slightly larger font size for better visibility
+        /
+        text-align: center; / Center align the text
+        /
+        display: block;
+        / Vertically center the content
+        /
+        position: relative;
+        top: 50%;
+        -ms-transform: translateY(-50%);
+        transform: translateY(-50%);
+    }
+
+
+    .selection-count {
+        position: fixed;
+        bottom: 12px;
+        right: 12px;
+        background: var(--accent);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(10,132,255,0.3);
+        display: none;
+        animation: fadeIn { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .selection-count.visible {
+        display: block;
+    }
+
+
+.note-input {
+    width: 100%; /* Make input fill the cell */
+    padding: 4px; /* Adjust padding as needed */
+    border: none; /* Remove default input border */
+    background-color: transparent; /* Make input background transparent */
+    color: var(--text-primary); /* Inherit text color */
+    font-size: inherit; /* Inherit font size */
+    text-align: center !important; /* Center text with higher priority */
+    font-family: inherit; /* Inherit font family */
+}
+
+
+
+
+    .direction-select { / Removed - not used anymore
+        /
+        width: 100%;
+        padding: 4px;
+        border: none;
+        border-radius: 0; / Remove select border radius if needed
+        /
+        background-color: transparent;
+        color: var(--text-primary);
+        font-size: inherit; / Inherit font size
+        /
+        font-family: inherit; / Inherit font family
+        /
+        appearance: none; / Remove default select appearance
+        /
+        -webkit-appearance: none; / For Safari
+        /
+        -moz-appearance: none; / For Firefox
+        /
+        cursor: pointer;
+        text-align-last: center; / Center text in select in some browsers
+        /
+    }
+
+    .direction-select option { / Removed - not used anymore
+        /
+        background-color: var(--bg-tertiary); / Option background color
+        /
+        color: var(--text-primary); / Option text color
+        /
+    }
+
+    / Style for the td containing the select to match other tds
+    /
+    .direction-cell {
+        padding: 0; / Adjust padding to align with other cells
+        /
+        display: flex; / Enable flexbox for alignment
+        /
+        justify-content: center; / Center content horizontally
+        /
+        align-items: center; / Center content vertically
+        /
+    }
+
+    .note-filled {
+        background-color: var(--link-green) !important; / Green background for filled note cells
+        /
+        color: var(--bg-primary);
+    }
+
+    /  Apply SLR region background to MGT cells (td.selectable) WITHIN SLR rows - ALTERNATING BLUES
+    /
+    .slr-region-3 td.selectable,
+    .slr-region-1 td.selectable {
+        background-color: var(--slr-blue-dark-bg); / Darker blue for SLR 3 and 1
+        /
+    }
+
+    .slr-region-2 td.selectable,
+    .slr-region-0 td.selectable {
+        background-color: var(--slr-blue-light-bg); / Lighter blue for SLR 2 and 0
+        /
+    }
+
+    / Apply alternating blue backgrounds to selectable cells directly based on SLR region
+    /
+    .slr-region-3 td.selectable,
+    .slr-region-1 td.selectable,
+    .slr-region-3 td.selectable.link-pink, / Apply to link classes as well, if they are used
+    /
+    .slr-region-1 td.selectable.link-pink,
+    .slr-region-3 td.selectable.link-green,
+    .slr-region-1 td.selectable.link-green,
+    .slr-region-3 td.selectable.link-blue,
+    .slr-region-1 td.selectable.link-blue {
+        background-color: var(--slr-blue-dark-bg);
+    }
+
+    .slr-region-2 td.selectable,
+    .slr-region-0 td.selectable,
+    .slr-region-2 td.selectable.link-pink, / Apply to link classes as well
+    /
+    .slr-region-0 td.selectable.link-pink,
+    .slr-region-2 td.selectable.link-green,
+    .slr-region-0 td.selectable.link-green,
+    .slr-region-2 td.selectable.link-blue,
+    .slr-region-0 td.selectable.link-blue {
+        background-color: var(--slr-blue-light-bg);
+    }
+
+
+    / QPLL Colors based on SLR Region - ALTERNATING BLUES
+    /
+    .qpll-slr-3,
+    .qpll-slr-1 {
+        background-color: var(--slr-blue-dark) !important; / Darker blue for SLR 3 and 1 QPLLs
+        /
+        color: var(--bg-primary);
+    }
+
+    .qpll-slr-2,
+    .qpll-slr-0 {
+        background-color: var(--slr-blue-light) !important; / Lighter blue for SLR 2 and 0 QPLLs
+        /
+        color: var(--bg-primary);
+    }
+
+
+    / Revert row background to default
+    /
+    .slr-region-3,
+    .slr-region-2,
+    .slr-region-1,
+    .slr-region-0 {
+        background-color: transparent;
+    }
+
+    / Remove specific link colors - rely on SLR region colors now
+    /
+    .link-pink,
+    .link-green,
+    .link-blue {
+        background: transparent !important; / Make link classes transparent
+        /
+    }
+
+    / Checkbox container styling
+    /
+    .checkbox-container {
+        display: flex; / Use flexbox to arrange items in a row
+        /
+        gap: 8px; / Spacing between checkbox groups
+        /
+        justify-content: center; / Center checkboxes horizontally
+        /
+        align-items: center; / Align checkboxes vertically in the cell
+        /
+    }
+
+    .checkbox-container label {
+        display: flex; / Use flexbox for label content
+        /
+        align-items: center; / Vertically align checkbox and text
+        /
+        gap: 4px; / Space between checkbox and label text
+        /
+        color: var(--text-primary); / Ensure label text color is correct
+        /
+        font-size: 10px; / Match font size of other cell content
+        /
+    }
+
+    .checkbox-container input[type="checkbox"] {
+        / Style checkboxes to fit within the cell if needed
+        /
+        margin: 0; / Reset default margins
+        /
+        appearance: none; / Remove default checkbox appearance
+        /
+        -webkit-appearance: none; / For Safari
+        /
+        -moz-appearance: none; / For Firefox
+        /
+        width: 12px; / Set a fixed width
+        /
+        height: 12px; / Set a fixed height
+        /
+        background-color: var(--bg-tertiary); / Background color of checkbox
+        /
+        border: 1px solid var(--border); / Border color
+        /
+        border-radius: 2px; / Optional: rounded corners
+        /
+        cursor: pointer;
+        position: relative; / For pseudo-element positioning
+        /
+    }
+
+    .checkbox-container input[type="checkbox"]:checked {
+        background-color: var(--accent); / Accent color when checked
+        /
+        border-color: var(--accent); / Accent border when checked
+        /
+    }
+
+    .checkbox-container input[type="checkbox"]:focus {
+        outline: none; / Remove default focus outline
+        /
+        box-shadow: 0 0 0 2px var(--accent); / Optional: custom focus indication
+        /
+    }
+
+    .checkbox-container input[type="checkbox"]:checked::before {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 8px;
+        height: 8px;
+        background-color: var(--text-primary); / Checkmark color
+        /
+        border-radius: 1px; / Optional: rounded checkmark
+        /
+    }
+
+
+</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">MGT Configurator - XCVU13P-FLGA2577-2-E</h1>
+            <div class="controls">
+                <button class="button" onclick="saveConfigToCSV()">Download Config</button> <!-- New button -->
+            </div>
+        </div>
+
+        <table class="mgt-grid" id="mgtGrid">
+            <thead>
+                <tr>
+                    <th>MGT #</th>
+                    <th>I/O Index</th>
+                    <th>MGT FW Link #</th>
+                    <th>Refclk FW #</th>
+                    <th>QPLL FW #</th>
+                    <th>Direction</th>
+                    <th>Direction</th>
+                    <th>QPLL FW #</th>
+                    <th>Refclk FW #</th>
+                    <th>MGT FW Link #</th>
+                    <th>I/O Index</th>
+                    <th>MGT #</th>
+                    <th>SLR</th>  <!-- New column header for SLR marker -->
+                </tr>
+            </thead>
+            <tbody id="mgtBody">
+                <!-- Populated by JavaScript -->
+            <tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y63')">X0Y63</td>
+                <td class="note-filled"><input type="text" class="note-input" value="1" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('59')">59</td>
+                <td class="sector" rowspan="4">Sector 3</td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 14</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 30</td>
+                <td class="sector" rowspan="4">Sector 7</td>
+                <td class="selectable " onclick="toggleLinkSelection('123')">123</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y63')">X1Y63</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-start-row slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y62')">X0Y62</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('58')">58</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('122')">122</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y62')">X1Y62</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y61')">X0Y61</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('57')">57</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('121')">121</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y61')">X1Y61</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y60')">X0Y60</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('56')">56</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('120')">120</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y60')">X1Y60</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y59')">X0Y59</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('55')">55</td>
+                <td class="sector" rowspan="4">Sector 3</td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 13</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 29</td>
+                <td class="sector" rowspan="4">Sector 7</td>
+                <td class="selectable " onclick="toggleLinkSelection('119')">119</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y59')">X1Y59</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y58')">X0Y58</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('54')">54</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('118')">118</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y58')">X1Y58</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y57')">X0Y57</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('53')">53</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('117')">117</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y57')">X1Y57</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y56')">X0Y56</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable" onclick="toggleLinkSelection('52')">52</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('116')">116</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y56')">X1Y56</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y55')">X0Y55</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('51')">51</td>
+                <td class="sector" rowspan="4">Sector 3</td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 12</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 28</td>
+                <td class="sector" rowspan="4">Sector 7</td>
+                <td class="selectable " onclick="toggleLinkSelection('115')">115</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y55')">X1Y55</td>
+                <td style="border-left: none;"><span class="slr-marker">SLR3</span></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y54')">X0Y54</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('50')">50</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('114')">114</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y54')">X1Y54</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y53')">X0Y53</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('49')">49</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('113')">113</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y53')">X1Y53</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y52')">X0Y52</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('48')">48</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('112')">112</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y52')">X1Y52</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y51')">X0Y51</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('47')">47</td>
+                <td class="sector" rowspan="4">Sector 3</td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 11</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-3" rowspan="4">QPLL 27</td>
+                <td class="sector" rowspan="4">Sector 7</td>
+                <td class="selectable " onclick="toggleLinkSelection('111')">111</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y51')">X1Y51</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y50')">X0Y50</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('46')">46</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('110')">110</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y50')">X1Y50</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y49')">X0Y49</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('45')">45</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('109')">109</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y49')">X1Y49</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-3">
+                <td class="selectable " onclick="toggleSelection('X0Y48')">X0Y48</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('44')">44</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('108')">108</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y48')">X1Y48</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y47')">X0Y47</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('43')">43</td>
+                <td class="sector" rowspan="4">Sector 2</td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 10</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 26</td>
+                <td class="sector" rowspan="4">Sector 6</td>
+                <td class="selectable " onclick="toggleLinkSelection('107')">107</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y47')">X1Y47</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-start-row slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y46')">X0Y46</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('42')">42</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('106')">106</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y46')">X1Y46</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y45')">X0Y45</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('41')">41</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('105')">105</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y45')">X1Y45</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y44')">X0Y44</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('40')">40</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('104')">104</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y44')">X1Y44</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y43')">X0Y43</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('39')">39</td>
+                <td class="sector" rowspan="4">Sector 2</td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 9</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 25</td>
+                <td class="sector" rowspan="4">Sector 6</td>
+                <td class="selectable " onclick="toggleLinkSelection('103')">103</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y43')">X1Y43</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y42')">X0Y42</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('38')">38</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('102')">102</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y42')">X1Y42</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y41')">X0Y41</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('37')">37</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('101')">101</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y41')">X1Y41</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y40')">X0Y40</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('36')">36</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('100')">100</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y40')">X1Y40</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y39')">X0Y39</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('35')">35</td>
+                <td class="sector" rowspan="4">Sector 2</td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 8</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 24</td>
+                <td class="sector" rowspan="4">Sector 6</td>
+                <td class="selectable " onclick="toggleLinkSelection('99')">99</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y39')">X1Y39</td>
+                <td style="border-left: none;"><span class="slr-marker">SLR2</span></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y38')">X0Y38</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('34')">34</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('98')">98</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y38')">X1Y38</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y37')">X0Y37</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('33')">33</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('97')">97</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y37')">X1Y37</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y36')">X0Y36</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('32')">32</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('96')">96</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y36')">X1Y36</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y35')">X0Y35</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('31')">31</td>
+                <td class="sector" rowspan="4">Sector 2</td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 7</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-2" rowspan="4">QPLL 23</td>
+                <td class="sector" rowspan="4">Sector 6</td>
+                <td class="selectable " onclick="toggleLinkSelection('95')">95</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y35')">X1Y35</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y34')">X0Y34</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('30')">30</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('94')">94</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y34')">X1Y34</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y33')">X0Y33</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('29')">29</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('93')">93</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y33')">X1Y33</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-2">
+                <td class="selectable " onclick="toggleSelection('X0Y32')">X0Y32</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('28')">28</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('92')">92</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y32')">X1Y32</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y31')">X0Y31</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('27')">27</td>
+                <td class="sector" rowspan="4">Sector 1</td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 6</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 22</td>
+                <td class="sector" rowspan="4">Sector 5</td>
+                <td class="selectable " onclick="toggleLinkSelection('91')">91</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y31')">X1Y31</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-start-row slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y30')">X0Y30</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('26')">26</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('90')">90</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y30')">X1Y30</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y29')">X0Y29</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('25')">25</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('89')">89</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y29')">X1Y29</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y28')">X0Y28</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('24')">24</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('88')">88</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y28')">X1Y28</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y27')">X0Y27</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('23')">23</td>
+                <td class="sector" rowspan="4">Sector 1</td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 5</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 21</td>
+                <td class="sector" rowspan="4">Sector 5</td>
+                <td class="selectable " onclick="toggleLinkSelection('87')">87</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y27')">X1Y27</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y26')">X0Y26</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('22')">22</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('86')">86</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y26')">X1Y26</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y25')">X0Y25</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('21')">21</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('85')">85</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y25')">X1Y25</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y24')">X0Y24</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('20')">20</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('84')">84</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y24')">X1Y24</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y23')">X0Y23</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('19')">19</td>
+                <td class="sector" rowspan="4">Sector 1</td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 4</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 20</td>
+                <td class="sector" rowspan="4">Sector 5</td>
+                <td class="selectable " onclick="toggleLinkSelection('83')">83</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y23')">X1Y23</td>
+                <td style="border-left: none;"><span class="slr-marker">SLR1</span></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y22')">X0Y22</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('18')">18</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('82')">82</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y22')">X1Y22</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y21')">X0Y21</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('17')">17</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('81')">81</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y21')">X1Y21</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y20')">X0Y20</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('16')">16</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('80')">80</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y20')">X1Y20</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y19')">X0Y19</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('15')">15</td>
+                <td class="sector" rowspan="4">Sector 1</td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 3</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-1" rowspan="4">QPLL 19</td>
+                <td class="sector" rowspan="4">Sector 5</td>
+                <td class="selectable " onclick="toggleLinkSelection('79')">79</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y19')">X1Y19</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y18')">X0Y18</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('14')">14</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('78')">78</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y18')">X1Y18</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y17')">X0Y17</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('13')">13</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('77')">77</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y17')">X1Y17</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-1">
+                <td class="selectable " onclick="toggleSelection('X0Y16')">X0Y16</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('12')">12</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('76')">76</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y16')">X1Y16</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y15')">X0Y15</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('11')">11</td>
+                <td class="sector" rowspan="4">Sector 0</td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 2</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 18</td>
+                <td class="sector" rowspan="4">Sector 4</td>
+                <td class="selectable " onclick="toggleLinkSelection('75')">75</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y15')">X1Y15</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-start-row slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y14')">X0Y14</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('10')">10</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('74')">74</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y14')">X1Y14</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y13')">X0Y13</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('9')">9</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('73')">73</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y13')">X1Y13</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y12')">X0Y12</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('8')">8</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('72')">72</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y12')">X1Y12</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y11')">X0Y11</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('7')">7</td>
+                <td class="sector" rowspan="4">Sector 0</td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 1</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 17</td>
+                <td class="sector" rowspan="4">Sector 4</td>
+                <td class="selectable " onclick="toggleLinkSelection('71')">71</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y11')">X1Y11</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y10')">X0Y10</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('6')">6</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('70')">70</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y10')">X1Y10</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y9')">X0Y9</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('5')">5</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('69')">69</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y9')">X1Y9</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y8')">X0Y8</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('4')">4</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('68')">68</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y8')">X1Y8</td>
+                <td style="border-left: none;"><span class="slr-marker">SLR0</span></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y7')">X0Y7</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('3')">3</td>
+                <td class="sector" rowspan="4">Sector 0</td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 0</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 16</td>
+                <td class="sector" rowspan="4">Sector 4</td>
+                <td class="selectable " onclick="toggleLinkSelection('67')">67</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y7')">X1Y7</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y6')">X0Y6</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('2')">2</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('66')">66</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y6')">X1Y6</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y5')">X0Y5</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('1')">1</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('65')">65</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y5')">X1Y5</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y4')">X0Y4</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('0')">0</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('64')">64</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y4')">X1Y4</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y3')">X0Y3</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('-')">-</td>
+                <td class="sector" rowspan="4">-</td>
+                <td class="qpll-slr-0" rowspan="4">-</td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="qpll-slr-0" rowspan="4">QPLL 15</td>
+                <td class="sector" rowspan="4">Sector 4</td>
+                <td class="selectable " onclick="toggleLinkSelection('63')">63</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y3')">X1Y3</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y2')">X0Y2</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('-')">-</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('62')">62</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y2')">X1Y2</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y1')">X0Y1</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('-')">-</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('61')">61</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y1')">X1Y1</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr><tr class="slr-region-0">
+                <td class="selectable " onclick="toggleSelection('X0Y0')">X0Y0</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleLinkSelection('-')">-</td>
+                
+                
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                
+                
+                <td class="selectable " onclick="toggleLinkSelection('60')">60</td>
+                <td><input type="text" class="note-input" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable " onclick="toggleSelection('X1Y0')">X1Y0</td>
+                <td style="border-left: none;"></td> <!-- Place SLR marker in the last cell and remove left border -->
+            </tr></tbody>
+        </table>
+    </div>
+
+
+    <div id="selectionCount" class="selection-count">0 items highlighted</div>
+
+    <script>
+        let selectedMGTs = new Set();
+        let selectedLinks = new Set();
+        const mgtData = {};
+
+        function createMGTRow(index, last_slr_row, isFirstRowInSLR) {
+            const tr = document.createElement('tr');
+            const leftMGT = `X0Y${index}`;
+            const rightMGT = `X1Y${index}`;
+
+            let leftLink, rightLink;
+
+            // Left MGT FW Link # sequence
+            if (index >= 4) {
+                leftLink = 59 - (63 - index);
+            } else {
+                leftLink = '-';
+            }
+
+            // Right MGT FW Link # sequence
+            rightLink = 123 - (63 - index);
+
+
+            const isMainBladeRow = [63, 47, 31, 15].includes(index);
+            const linkClass = '';
+
+            let slrRowClass = '';
+            let slrRegion = '';
+            if ([62, 46, 30, 14].includes(index)) {
+                slrRowClass += 'slr-start-row ';
+            }
+
+            if (index > 47) {
+                slrRowClass += 'slr-region-3';
+                slrRegion = '3';
+            } else if (index > 31) {
+                slrRowClass += 'slr-region-2';
+                slrRegion = '2';
+            } else if (index > 15) {
+                slrRowClass += 'slr-region-1';
+                slrRegion = '1';
+            } else {
+                slrRowClass += 'slr-region-0';
+                slrRegion = '0';
+            }
+            tr.className = slrRowClass.trim();
+
+            let slrMarkerHTML = getSLRMarker(index) ? `<span class="slr-marker">${getSLRMarker(index)}</span>` : ''; // Get SLR marker content
+
+            let rowHTML = `
+                <td class="selectable ${linkClass}" onclick="toggleSelection('${leftMGT}')">${leftMGT}</td>
+                <td><input type="text" class="note-input" value="" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable ${linkClass}" onclick="toggleLinkSelection('${leftLink}')">${leftLink}</td>
+                ${isFirstRowInSLR ? `<td class="sector" rowspan="4">${getSector(index, 'left')}</td>` : ''}
+                ${isFirstRowInSLR ? `<td class="qpll-slr-${slrRegion}" rowspan="4">${getQPLL(index, 'left', index)}</td>` : ''}
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox left-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                <td class="direction-cell">
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="tx"> TX</label>
+                        <label><input type="checkbox" class="direction-checkbox right-dir" value="rx"> RX</label>
+                    </div>
+                </td>
+                ${isFirstRowInSLR ? `<td class="qpll-slr-${slrRegion}" rowspan="4">${getQPLL(index, 'right', index)}</td>` : ''}
+                ${isFirstRowInSLR ? `<td class="sector" rowspan="4">${getSector(index, 'right')}</td>` : ''}
+                <td class="selectable ${linkClass}" onclick="toggleLinkSelection('${rightLink}')">${rightLink}</td>
+                <td><input type="text" class="note-input" value="" oninput="updateNoteCellColor(this)"></td>
+                <td class="selectable ${linkClass}" onclick="toggleSelection('${rightMGT}')">${rightMGT}</td>
+                <td style="border-left: none;">${slrMarkerHTML}</td> <!-- Place SLR marker in the last cell and remove left border -->
+            `;
+
+            tr.innerHTML = rowHTML;
+            return tr;
+        }
+
+        function getSLRMarker(index) {
+            if (index === 8) return 'SLR0';
+            if (index === 55) return 'SLR3';
+            if (index === 39) return 'SLR2';
+            if (index === 23) return 'SLR1';
+            return '';
+        }
+
+        function getLinkClass(index) {
+            return '';
+        }
+
+        function getQPLLClass(index, side) {
+            return '';
+        }
+
+        function getSector(index, side) {
+            if (side === 'left') {
+                if (index >= 48) return 'Sector 3';
+                if (index >= 32) return 'Sector 2';
+                if (index >= 16) return 'Sector 1';
+                if (index >= 4) return 'Sector 0';
+                if (index >= 0) return '-';
+            } else {
+                if (index >= 48) return 'Sector 7';
+                if (index >= 32) return 'Sector 6';
+                if (index >= 16) return 'Sector 5';
+                if (index >= 0) return 'Sector 4';
+            }
+            return '';
+        }
+
+        function getQPLL(index, side, rowIndex) { // rowIndex is now just index
+            let qpllNumber = '-';
+            if (side === 'left') {
+                if (index >= 4) {
+                    qpllNumber = 14 - Math.floor((63 - rowIndex) / 4);
+                    if (qpllNumber < 0) { // To handle cases where calculation goes below 0, make it '-'
+                        qpllNumber = '-';
+                    } else {
+                        qpllNumber = `QPLL ${qpllNumber}`;
+                    }
+                }
+                 else { // For index < 4 on left side, it should be '-'
+                    qpllNumber = '-';
+                }
+            } else {
+                if (index >= 4) {
+                   qpllNumber = 30 - Math.floor((63 - rowIndex) / 4);
+                   qpllNumber = `QPLL ${qpllNumber}`;
+                }
+                 else { // For index < 4 on right side, it should be '-' - if you want to keep consistency, else remove this 'else'
+                   qpllNumber = `QPLL 15`;
+                }
+            }
+            return qpllNumber;
+        }
+
+
+        function toggleMGTSelection(mgtId) {
+        }
+
+        function toggleSelection(id) {
+            const cells = document.querySelectorAll(`.selectable`);
+            cells.forEach(cell => {
+                if (cell.textContent === id) {
+                    cell.classList.toggle('selected');
+                    if (cell.classList.contains('selected')) {
+                        selectedMGTs.add(id);
+                    } else {
+                        selectedMGTs.delete(id);
+                    }
+                }
+            });
+            updateSelectionUI();
+        }
+
+        function toggleLinkSelection(link) {
+            if (link === '-') return;
+            const cells = document.querySelectorAll(`.selectable`);
+            cells.forEach(cell => {
+                if (cell.textContent === link.toString()) {
+                    cell.classList.toggle('selected');
+                    if (cell.classList.contains('selected')) {
+                        selectedLinks.add(link);
+                    } else {
+                        selectedLinks.delete(link);
+                    }
+                }
+            });
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const totalSelected = selectedMGTs.size + selectedLinks.size;
+            const selectionCount = document.getElementById('selectionCount');
+            selectionCount.className = totalSelected > 0 ? 'selection-count visible' : 'selection-count';
+            selectionCount.textContent = `${totalSelected} items highlighted`;
+        }
+
+        function selectAll() {
+            const cells = document.querySelectorAll('.selectable');
+            cells.forEach(cell => {
+                cell.classList.add('selected');
+                if (cell.textContent.startsWith('X')) {
+                    selectedMGTs.add(cell.textContent);
+                } else if (!isNaN(cell.textContent)) {
+                    selectedLinks.add(parseInt(cell.textContent));
+                }
+            });
+            updateSelectionUI();
+        }
+
+        function clearSelection() {
+            const cells = document.querySelectorAll('.selectable');
+            cells.forEach(cell => cell.classList.remove('selected'));
+            selectedMGTs.clear();
+            selectedLinks.clear();
+            updateSelectionUI();
+        }
+
+        function applyConfig() {
+            const config = {
+                direction: document.getElementById('direction').value,
+                lineRate: document.getElementById('lineRate').value,
+                protocol: document.getElementById('protocol').value
+            };
+
+            selectedMGTs.forEach(mgt => {
+                mgtData[mgt] = config;
+            });
+
+            alert('Configuration applied (although config panel removed in UI)');
+        }
+
+        function saveConfig() {
+            const configString = JSON.stringify(mgtData, null, 2);
+            const blob = new Blob([configString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mgt_configuration.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function updateNoteCellColor(inputElement) {
+            const td = inputElement.parentElement;
+            const inputValue = inputElement.value.trim();
+            if (!isNaN(inputValue) && inputValue !== "") {
+                td.classList.add('note-filled');
+            } else {
+                td.classList.remove('note-filled');
+            }
+        }
+document.addEventListener('DOMContentLoaded', () => {
+    const inputElements = document.querySelectorAll('input.note-input');
+    
+    inputElements.forEach(input => {
+        // Remove any filled note class on page load
+        updateNoteCellColor(input);
+    });
+});
+
+        window.onload = () => {
+            const tbody = document.getElementById('mgtBody');
+            let lastSLRRowIndex = 63;
+            const slrRowCounts = [16, 16, 16, 16];
+
+            for (let i = 0; i < slrRowCounts.length; i++) {
+                for (let index = lastSLRRowIndex; index > lastSLRRowIndex - slrRowCounts[i]; index--) {
+                    const isFirstRowInSLR = ((index) % 4 === 3) || (index === lastSLRRowIndex); // Display label every 4 rows, and on the very first row
+                    tbody.appendChild(createMGTRow(index, lastSLRRowIndex, isFirstRowInSLR));
+                    if ((index) % 4 === 3) { // for sector row span to work correctly
+                         const createdRow = tbody.lastElementChild;
+                         if (createdRow) {
+                             const sectorCells = createdRow.querySelectorAll('.sector');
+                             sectorCells.forEach(cell => {
+                                 cell.rowSpan = 4;
+                             });
+                         }
+                    }
+                }
+                lastSLRRowIndex -= slrRowCounts[i];
+            }
+        };
+
+
+function saveConfigToCSV() {
+    const table = document.getElementById('mgtGrid');
+    const rows = table.querySelectorAll('#mgtBody tr');
+
+    const records = new Map();
+
+    function mapDirection(dir) {
+        let lower = dir.toLowerCase();
+        const hasTx = lower.includes("tx");
+        const hasRx = lower.includes("rx");
+        if (hasTx && hasRx) return "11111"; // Both TX & RX
+        if (hasTx) return "11100"; // TX Only
+        if (hasRx) return "00111"; // RX Only
+        return "00000"; // Neither
+    }
+
+    function hasRx(dir) {
+        return dir === "11111" || dir === "00111"; // Includes RX or Both TX & RX
+    }
+
+    function hasTx(dir) {
+        return dir === "11111" || dir === "11100"; // Includes TX or Both RX & TX
+    }
+
+    function getSector(fwLink) {
+        if (fwLink <= 11) return 0;  
+        return Math.floor((fwLink - 12) / 16) + 1;  
+    }
+
+    rows.forEach(row => {
+        let leftMGT = '', leftIO = '', leftLink = '', leftDir = '';
+        let rightDir = '', rightLink = '', rightIO = '', rightMGT = '';
+
+        if (row.cells.length === 13) {
+            leftMGT = row.cells[0].textContent.trim();
+            leftIO = row.cells[1].querySelector('input') ? row.cells[1].querySelector('input').value.trim() : '';
+            leftLink = row.cells[2].textContent.trim();
+
+            const leftCheckboxes = row.cells[5].querySelectorAll('input[type="checkbox"]');
+            leftDir = Array.from(leftCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(' ');
+
+            const rightCheckboxes = row.cells[6].querySelectorAll('input[type="checkbox"]');
+            rightDir = Array.from(rightCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(' ');
+
+            rightLink = row.cells[9].textContent.trim();
+            rightIO = row.cells[10].querySelector('input') ? row.cells[10].querySelector('input').value.trim() : '';
+            rightMGT = row.cells[11].textContent.trim();
+        } else if (row.cells.length === 9) {
+            leftMGT = row.cells[0].textContent.trim();
+            leftIO = row.cells[1].querySelector('input') ? row.cells[1].querySelector('input').value.trim() : '';
+            leftLink = row.cells[2].textContent.trim();
+
+            const leftCheckboxes = row.cells[3].querySelectorAll('input[type="checkbox"]');
+            leftDir = Array.from(leftCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(' ');
+
+            const rightCheckboxes = row.cells[4].querySelectorAll('input[type="checkbox"]');
+            rightDir = Array.from(rightCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(' ');
+
+            rightLink = row.cells[5].textContent.trim();
+            rightIO = row.cells[6].querySelector('input') ? row.cells[6].querySelector('input').value.trim() : '';
+            rightMGT = row.cells[7].textContent.trim();
+        } else {
+            return;
+        }
+
+        if (leftLink !== "-" && leftLink !== "") {
+            const key = `${leftLink}-${leftMGT}-${leftIO}`;
+            records.set(key, { fwLink: Number(leftLink), mgt: leftMGT, io: leftIO, dir: mapDirection(leftDir) });
+        }
+
+        if (rightLink !== "-" && rightLink !== "") {
+            const key = `${rightLink}-${rightMGT}-${rightIO}`;
+            records.set(key, { fwLink: Number(rightLink), mgt: rightMGT, io: rightIO, dir: mapDirection(rightDir) });
+        }
+    });
+
+    const sortedRecords = Array.from(records.values()).sort((a, b) => a.fwLink - b.fwLink);
+
+    // ------------------------------------------------
+    // Create the MGT configuration CSV (for inspection only)
+    // ------------------------------------------------
+    let configCsvContent = "MGT FW Link #,MGT #,I/O Index,Direction\r\n";
+    sortedRecords.forEach(rec => {
+        configCsvContent += `${rec.fwLink},${rec.mgt},${rec.io},${rec.dir}\r\n`;
+    });
+
+    // ------------------------------------------------
+    // Create PrjSpecPkg.vhd content
+    // ------------------------------------------------
+    let vhdlContent = "library IEEE;\n";
+    vhdlContent += "use IEEE.STD_LOGIC_1164.all;\n";
+    vhdlContent += "\n";
+    vhdlContent += "library surf;\n";
+    vhdlContent += "use surf.StdRtlPkg.all;\n";
+    vhdlContent += "\n";
+    vhdlContent += "library apx_fs;\n";
+    vhdlContent += "use apx_fs.MgtPkg.all;\n";
+    vhdlContent += "use apx_fs.ApxChPkg.all;\n";
+    vhdlContent += "\n";
+    vhdlContent += "use apx_fs.xF13PChassisPkg.all;\n";
+    vhdlContent += "\n";
+    vhdlContent += "package PrjSpecPkg is\n";
+    vhdlContent += "\n";
+    vhdlContent += "  constant PRJ_SPEC_PKG_FORMAT_VER_C : integer := 1;\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- chassis type\n";
+    vhdlContent += "  constant CHASSIS_TYPE_C        : string  := \"xF13P\";\n";
+    vhdlContent += "  constant PROJECT_SPEED_GRADE_C : integer := 2;\n";
+    vhdlContent += "\n";
+    vhdlContent += "  constant FABRIC_ID_BOARD_C  : string  := \"APxF-13\";\n";
+    vhdlContent += "  constant FABRIC_ID_NUMBER_C : integer := 1;\n";
+    vhdlContent += "\n";
+    vhdlContent += "  --clk 40 source\n";
+    vhdlContent += "  constant CLK_40_SOURCE_LOCAL_C   : integer := 1;\n";
+    vhdlContent += "  constant CLK_40_SOURCE_TCDS_C    : integer := 2;\n";
+    vhdlContent += "  constant CLK_40_SOURCE_DYNAMIC_C : integer := 3;\n";
+    vhdlContent += "\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- user constants\n";
+    vhdlContent += "  -- Must begin with \"USER_\" and must be parsable as a string or number.\n";
+    vhdlContent += "  constant USER_STRING_C : string           := \"Project description. abcdef 123 !!@#$ bla bla\";  -- up to 64 character long, parser will throw an error if longer\n";
+    vhdlContent += "  constant USER_NUM1_C   : slv(31 downto 0) := x\"00000000\";\n";
+    vhdlContent += "  constant USER_NUM2_C   : slv(31 downto 0) := x\"11111111\";\n";
+    vhdlContent += "  constant USER_NUM3_C   : slv(31 downto 0) := x\"ABCD1234\";\n";
+    vhdlContent += "  constant USER_NUM4_C   : slv(31 downto 0) := x\"87654321\";\n";
+    vhdlContent += "\n";
+    vhdlContent += "  constant PRJ_VER_MAJOR_C    : integer := 0;\n";
+    vhdlContent += "  constant PRJ_VER_MINOR_C    : integer := 1;\n";
+    vhdlContent += "  constant PRJ_VER_REVISION_C : integer := 0;\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- firmware shell algo clock to LHC BC clock multiplier\n";
+    vhdlContent += "  constant FS_TO_LHC_CLK_FACTOR_C : natural range 1 to 12      := 9;\n";
+    vhdlContent += "  constant SHELL_ALGO_FREQ_HZ_C   : natural range 1 to 1000000 := 360720000;\n";
+    vhdlContent += "\n";
+    vhdlContent += "  constant SECTOR_ENABLED_C : BooleanArray(0 to SECTOR_CNT_C-1) := (\n";
+    vhdlContent += "    0 => true,\n";
+    vhdlContent += "    1 => true,\n";
+    vhdlContent += "    2 => true,\n";
+    vhdlContent += "    3 => true,\n";
+    vhdlContent += "    4 => true,\n";
+    vhdlContent += "    5 => true,\n";
+    vhdlContent += "    6 => true,\n";
+    vhdlContent += "    7 => true\n";
+    vhdlContent += "    );\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- tRefClkCfgArr declaration in apx-fs/mgt/rtl/MgtPkg.vhd\n";
+    vhdlContent += "  constant REFCLK_CFG_C : tRefClkCfgArr(0 to REFCLK_CNT_C-1) := (\n";
+    vhdlContent += "    0  => (enabled => \"00\", sector => 0, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    1  => (enabled => \"11\", sector => 0, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    2  => (enabled => \"11\", sector => 0, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    3  => (enabled => \"11\", sector => 1, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    4  => (enabled => \"11\", sector => 1, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    5  => (enabled => \"11\", sector => 2, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    6  => (enabled => \"11\", sector => 2, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    7  => (enabled => \"11\", sector => 3, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    8  => (enabled => \"11\", sector => 3, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    9  => (enabled => \"11\", sector => 4, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    10 => (enabled => \"11\", sector => 4, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    11 => (enabled => \"11\", sector => 4, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    12 => (enabled => \"11\", sector => 5, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    13 => (enabled => \"11\", sector => 5, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    14 => (enabled => \"11\", sector => 6, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    15 => (enabled => \"11\", sector => 6, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    16 => (enabled => \"11\", sector => 7, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\"),\n";
+    vhdlContent += "    17 => (enabled => \"11\", sector => 7, refclk0_freq => \"515.625MHz\", refclk1_freq => \"515.625MHz\")\n";
+    vhdlContent += "    );\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- tQpllCfgArr declaration in apx-fs/mgt/rtl/MgtPkg.vhd\n";
+    vhdlContent += "  constant QPLL_CFG_C : tQpllCfgArr(0 to QPLL_CNT_C-1) := (\n";
+    vhdlContent += "    0 => (enabled => \"1\", sector => 0, qpllCore => gty_qpll_25g, refclk0 => 1, refclk1 => 1),\n";
+    vhdlContent += "    1 => (enabled => \"1\", sector => 0, qpllCore => gty_qpll_25g, refclk0 => 1, refclk1 => 1),\n";
+    vhdlContent += "    2 => (enabled => \"1\", sector => 0, qpllCore => gty_qpll_25g, refclk0 => 2, refclk1 => 2),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    3 => (enabled => \"1\", sector => 1, qpllCore => gty_qpll_25g, refclk0 => 3, refclk1 => 3),\n";
+    vhdlContent += "    4 => (enabled => \"1\", sector => 1, qpllCore => gty_qpll_25g, refclk0 => 3, refclk1 => 3),\n";
+    vhdlContent += "    5 => (enabled => \"1\", sector => 1, qpllCore => gty_qpll_25g, refclk0 => 4, refclk1 => 4),\n";
+    vhdlContent += "    6 => (enabled => \"1\", sector => 1, qpllCore => gty_qpll_25g, refclk0 => 4, refclk1 => 4),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    7  => (enabled => \"1\", sector => 2, qpllCore => gty_qpll_25g, refclk0 => 5, refclk1 => 5),\n";
+    vhdlContent += "    8  => (enabled => \"1\", sector => 2, qpllCore => gty_qpll_25g, refclk0 => 5, refclk1 => 5),\n";
+    vhdlContent += "    9  => (enabled => \"1\", sector => 2, qpllCore => gty_qpll_25g, refclk0 => 6, refclk1 => 6),\n";
+    vhdlContent += "    10 => (enabled => \"1\", sector => 2, qpllCore => gty_qpll_25g, refclk0 => 6, refclk1 => 6),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    11 => (enabled => \"1\", sector => 3, qpllCore => gty_qpll_25g, refclk0 => 7, refclk1 => 7),\n";
+    vhdlContent += "    12 => (enabled => \"1\", sector => 3, qpllCore => gty_qpll_25g, refclk0 => 7, refclk1 => 7),\n";
+    vhdlContent += "    13 => (enabled => \"1\", sector => 3, qpllCore => gty_qpll_25g, refclk0 => 8, refclk1 => 8),\n";
+    vhdlContent += "    14 => (enabled => \"1\", sector => 3, qpllCore => gty_qpll_25g, refclk0 => 8, refclk1 => 8),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    15 => (enabled => \"1\", sector => 4, qpllCore => gty_qpll_25g, refclk0 => 9, refclk1 => 9),\n";
+    vhdlContent += "    16 => (enabled => \"1\", sector => 4, qpllCore => gty_qpll_25g, refclk0 => 10, refclk1 => 10),\n";
+    vhdlContent += "    17 => (enabled => \"1\", sector => 4, qpllCore => gty_qpll_25g, refclk0 => 10, refclk1 => 10),\n";
+    vhdlContent += "    18 => (enabled => \"1\", sector => 4, qpllCore => gty_qpll_25g, refclk0 => 11, refclk1 => 11),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    19 => (enabled => \"1\", sector => 5, qpllCore => gty_qpll_25g, refclk0 => 12, refclk1 => 12),\n";
+    vhdlContent += "    20 => (enabled => \"1\", sector => 5, qpllCore => gty_qpll_25g, refclk0 => 12, refclk1 => 12),\n";
+    vhdlContent += "    21 => (enabled => \"1\", sector => 5, qpllCore => gty_qpll_25g, refclk0 => 13, refclk1 => 13),\n";
+    vhdlContent += "    22 => (enabled => \"1\", sector => 5, qpllCore => gty_qpll_25g, refclk0 => 13, refclk1 => 13),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    23 => (enabled => \"1\", sector => 6, qpllCore => gty_qpll_25g, refclk0 => 14, refclk1 => 14),\n";
+    vhdlContent += "    24 => (enabled => \"1\", sector => 6, qpllCore => gty_qpll_25g, refclk0 => 14, refclk1 => 14),\n";
+    vhdlContent += "    25 => (enabled => \"1\", sector => 6, qpllCore => gty_qpll_25g, refclk0 => 15, refclk1 => 15),\n";
+    vhdlContent += "    26 => (enabled => \"1\", sector => 6, qpllCore => gty_qpll_25g, refclk0 => 15, refclk1 => 15),\n";
+    vhdlContent += "\n";
+    vhdlContent += "    27 => (enabled => \"1\", sector => 7, qpllCore => gty_qpll_25g, refclk0 => 16, refclk1 => 16),\n";
+    vhdlContent += "    28 => (enabled => \"1\", sector => 7, qpllCore => gty_qpll_25g, refclk0 => 16, refclk1 => 16),\n";
+    vhdlContent += "    29 => (enabled => \"1\", sector => 7, qpllCore => gty_qpll_25g, refclk0 => 17, refclk1 => 17),\n";
+    vhdlContent += "    30 => (enabled => \"1\", sector => 7, qpllCore => gty_qpll_25g, refclk0 => 17, refclk1 => 17)\n";
+    vhdlContent += "    );\n";
+    vhdlContent += "\n";
+    vhdlContent += "  constant MGT_SYM_25G_6467 : tMgtCfg := (mgtCore => gty4_25g_sym, mgtCoreType => \"gty4\", rxLineRate => \"25.78125Gbps\", rxEncoding => \"64b67b\", txLineRate => \"25.78125Gbps\", txEncoding => \"64b67b\");\n";
+    vhdlContent += "\n";
+    vhdlContent += "  --constant PROTO_CSP_TM_18_CR_9_FL_162_TV_0 : tCSPProtoCfg := (ProtocolType  => CSP, CSPTMInterval => 18, CSPClkRatio => 9, CSPFrameLength => 162, CSPThrottleVector => \"000000000\", lpGBTParam1 => 0, lpGBTParam2 => '0', lpGBTParam3 => \"0000\");\n";
+    vhdlContent += "\n";
+    vhdlContent += "--TM2, 360 AXI Clock, 18-word packets (PL=18, PI=18), no throttle\n";
+    vhdlContent += "  constant CSP_PL18_PI18 : tCSPProtoCfg := (ProtocolType => CSP, CSPFrameInterval => 18, CSPFrameLength => 18, CSPThrottleVector => \"000000000\", lpGBTParam1 => 0, lpGBTParam2 => '0', lpGBTParam3 => \"0000\");\n";
+    vhdlContent += "\n";
+    vhdlContent += "  -- tApxChCfgArr declaration in apx-fs/apxSector/rtl/apxChPkg.vhd\n";
+    vhdlContent += "  -- channel configurations for APx Validation Tests\n";
+    vhdlContent += "  -- NOTE:  enable order, L->R, is  \"TxBuf TxProt MGT RxProt RxBuf\"   1=enabled, 0=disabled\n";
+
+    // Append APX_CH_CFG_C configuration
+// Append APX_CH_CFG_C configuration
+vhdlContent += `\n  constant APX_CH_CFG_C : tApxChCfgArr(0 to MGT_CNT_C-1) := (\n`;
+sortedRecords.forEach((rec, index) => {
+    // Check if it's the last record to avoid adding a comma
+    const isLast = index === sortedRecords.length - 1;
+    vhdlContent += `    ${rec.fwLink}  => (enabled => "${rec.dir}", sector => ${getSector(rec.fwLink)}, MgtCfg => MGT_SYM_25G_6467, TxProtocolCfg => CSP_PL18_PI18, RxProtocolCfg => CSP_PL18_PI18)`;
+    
+    if (!isLast) {
+        vhdlContent += ',';
+    }
+    vhdlContent += `\n`;
+});
+
+vhdlContent += "  );\n\n";
+    // End the package
+    vhdlContent += "end package PrjSpecPkg;\n";
+
+    // ------------------------------------------------
+    // Create buffer_rx.txt content
+    // ------------------------------------------------
+    let rxTableContent = "BUFFER OPERATION\tCOLUMN\tBC0_DELAY\tLOOP_MODE\n";
+
+    const rxRecords = sortedRecords
+        .filter(rec => hasRx(rec.dir) && rec.io !== "")
+        .sort((a, b) => Number(a.io) - Number(b.io));
+
+    rxRecords.forEach(rec => {
+        rxTableContent += `R${rec.fwLink}\tstatic_playback\t${rec.io}\t0\tloop\n`;
+    });
+
+    // ------------------------------------------------
+    // Create buffer_tx.txt content
+    // ------------------------------------------------
+    let txTableContent = "BUFFER OPERATION\tCOLUMN\tBC0_DELAY\tLOOP_MODE\n";
+
+    const txRecords = sortedRecords
+        .filter(rec => hasTx(rec.dir) && rec.io !== "")
+        .sort((a, b) => Number(a.io) - Number(b.io));
+
+    txRecords.forEach(rec => {
+        let bc0Delay = Number(rec.io) >= 6 ? 149 : 0;
+        txTableContent += `T${rec.fwLink}\tstream_capture\t${rec.io}\t${bc0Delay}\tsingle\n`;
+    });
+
+    // ------------------------------------------------
+    // Download all files
+    // ------------------------------------------------
+    
+    // Helper function to download a file
+    const downloadFile = (content, filename) => {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+    
+    // Download each file
+    downloadFile(vhdlContent, 'PrjSpecPkg.vhd');
+    downloadFile(rxTableContent, 'buf_rx.txt');
+    downloadFile(txTableContent, 'buf_tx.txt');
+    
+    // For debugging - also download the original CSV if needed
+    // downloadFile(configCsvContent, 'mgt_configuration.csv');
+}
+
+
+    </script>
+</body></html>
