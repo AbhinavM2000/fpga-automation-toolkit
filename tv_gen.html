@@ -1,0 +1,427 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Vector Generator</title>
+  <style>
+    :root {
+      --primary-color: #0071e3;
+      --primary-hover: #0077ed;
+      --background: #000000;
+      --surface: #1c1c1e;
+      --surface-2: #2c2c2e;
+      --text: #ffffff;
+      --text-secondary: #86868b;
+      --border: #424245;
+      --success: #30d158;
+      --error: #ff453a;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem 0;
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      background: linear-gradient(90deg, #0071e3, #00c7be);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .control-panel {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      color: var(--text);
+      font-size: 1rem;
+      transition: all 0.2s ease;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+    }
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    button:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .bx-container {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bx-container h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      color: var(--text);
+    }
+    #outputArea, #tableOutputArea {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+    #vhdlOutput, #tableOutput {
+      background: var(--surface-2);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      font-family: "SF Mono", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      overflow-x: auto;
+      color: var(--text);
+      white-space: pre;
+    }
+    #copyButton, #copyTableButton {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: var(--surface-2);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      opacity: 0.8;
+      width: auto;
+    }
+    #copyButton:hover, #copyTableButton:hover {
+      opacity: 1;
+    }
+    .toast {
+      background: var(--success);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.75rem;
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .error-message {
+      color: var(--error);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Test Vector Generator</h1>
+      <p class="subtitle">Create RTL and bitfile TVs from your HLS CSIM input links !</p>
+    </header>
+
+    <div class="control-panel">
+      <div class="form-group">
+        <label for="bxCount">Number of BX</label>
+        <input type="number" id="bxCount" min="1" value="1" />
+      </div>
+      <div class="form-group">
+        <label for="linkCount">Number of Input Links per BX</label>
+        <input type="number" id="linkCount" min="1" value="1" />
+      </div>
+      <button id="generateBtn">Proceed</button>
+    </div>
+
+    <div id="dynamicForm"></div>
+    <button id="processBtn" style="display:none;">Generate RTL Test Vector</button>
+    <br>
+    <button id="generateTableBtn" style="display:none;">Generate BITFILE Test Vector</button>
+    
+    <div id="outputArea" style="display:none;">
+      <button id="copyButton">Copy Code</button>
+      <pre id="vhdlOutput"></pre>
+    </div>
+    
+    <div id="tableOutputArea" style="display:none;">
+      <button id="copyTableButton">Copy Table</button>
+      <pre id="tableOutput"></pre>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", function() {
+      const bxCount = parseInt(document.getElementById("bxCount").value);
+      const linkCount = parseInt(document.getElementById("linkCount").value);
+      const dynamicForm = document.getElementById("dynamicForm");
+
+      // Add the information line only once.
+      let infoLine = document.getElementById("infoLine");
+      if (!infoLine) {
+        infoLine = document.createElement("div");
+        infoLine.id = "infoLine";
+        infoLine.classList.add("info-line");
+        infoLine.textContent = "Fill in the input link hex values for each BX and link from HLS CSIM (padding optional)";
+        dynamicForm.appendChild(infoLine);
+      }
+      
+      // Remove any previously generated BX containers (keeping the info line intact)
+      while (dynamicForm.children.length > 1) {
+        dynamicForm.removeChild(dynamicForm.lastChild);
+      }
+
+      for (let bx = 0; bx < bxCount; bx++) {
+        const bxContainer = document.createElement("div");
+        bxContainer.classList.add("bx-container");
+        const bxTitle = document.createElement("h2");
+        bxTitle.textContent = `BX ${bx + 1}`;
+        bxContainer.appendChild(bxTitle);
+        
+        for (let ln = linkCount - 1; ln >= 0; ln--) {
+          const formGroup = document.createElement("div");
+          formGroup.classList.add("form-group");
+          const label = document.createElement("label");
+          label.textContent = `Link ${ln}`;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Enter hex value (0x...)";
+          input.pattern = "^0x[a-fA-F0-9]{1,144}$";
+          input.maxLength = 146;
+          input.dataset.bx = bx;
+          input.dataset.link = ln;
+          
+          input.addEventListener("input", function() {
+            validateInput(input);
+          });
+          
+          formGroup.appendChild(label);
+          formGroup.appendChild(input);
+          bxContainer.appendChild(formGroup);
+        }
+        dynamicForm.appendChild(bxContainer);
+      }
+      document.getElementById("processBtn").style.display = "block";
+      document.getElementById("generateTableBtn").style.display = "block";
+    });
+
+    function validateInput(input) {
+      const errorMessage = input.parentElement.querySelector(".error-message");
+      if (errorMessage) errorMessage.remove();
+      if (!input.value.match(/^0x[a-fA-F0-9]{1,144}$/)) {
+        const error = document.createElement("div");
+        error.classList.add("error-message");
+        error.textContent = "Please enter a valid hex value starting with 0x";
+        input.parentElement.appendChild(error);
+      }
+    }
+
+    document.getElementById("processBtn").addEventListener("click", function() {
+      const inputs = document.querySelectorAll("input[type='text']");
+      if (inputs.length === 0) return;
+      const linkCount = parseInt(document.getElementById("linkCount").value);
+      const bxCount = parseInt(document.getElementById("bxCount").value);
+      let vhdlCode = "";
+      
+      for (let ln = linkCount - 1; ln >= 0; ln--) {
+        vhdlCode += `-- Link ${ln} process\nprocess\nbegin\n`;
+        for (let bx = 0; bx < bxCount; bx++) {
+          const input = document.querySelector(`input[data-bx="${bx}"][data-link="${ln}"]`);
+          const value = input.value.trim();
+          if (!value.match(/^0x[a-fA-F0-9]{1,144}$/)) {
+            showToast(`Invalid input in BX ${bx + 1}, Link ${ln}`, "error");
+            return;
+          }
+          const hexPart = value.slice(2);
+          const paddedHex = hexPart.padStart(144, '0');
+          for (let seg = 8; seg >= 0; seg--) {
+            const segment = paddedHex.substr(seg * 16, 16);
+            vhdlCode += `    axiStreamIn(${ln}).tData(63 downto 0) <= X"${segment}";\n`;
+            if (!(bx === bxCount - 1 && seg === 0)) {
+              vhdlCode += "    wait for CLOCK_PERIOD_360;\n";
+            }
+          }
+        }
+        vhdlCode += "    wait;\nend process;\n\n";
+      }
+      document.getElementById("vhdlOutput").textContent = vhdlCode;
+      document.getElementById("outputArea").style.display = "block";
+    });
+
+    document.getElementById("generateTableBtn").addEventListener("click", function() {
+      const bxCount = parseInt(document.getElementById("bxCount").value);
+      const linkCount = parseInt(document.getElementById("linkCount").value);
+      const segmentsData = [];
+      
+      for (let ln = 0; ln < linkCount; ln++) {
+        segmentsData[ln] = [];
+        for (let bx = 0; bx < bxCount; bx++) {
+          const input = document.querySelector(`input[data-bx="${bx}"][data-link="${ln}"]`);
+          if (!input || !input.value.trim().match(/^0x[a-fA-F0-9]{1,144}$/)) {
+            showToast(`Invalid input in BX ${bx + 1}, Link ${ln}`, "error");
+            return;
+          }
+          const hexPart = input.value.trim().slice(2);
+          const paddedHex = hexPart.padStart(144, '0');
+          const segs = [];
+          for (let r = 0; r < 9; r++) {
+            let segIndex = 8 - r;
+            segs.push(paddedHex.substr(segIndex * 16, 16));
+          }
+          segmentsData[ln].push(segs);
+        }
+      }
+      
+      const totalRows = bxCount * 9;
+      let tableStr = "#WordCnt\t    ";
+      for (let ln = 0; ln < linkCount; ln++) {
+        tableStr += "LINK_" + ln.toString().padStart(2, "0") + "\t\t    ";
+      }
+      tableStr += "\n#BeginData\n";
+      
+      for (let r = 0; r < totalRows; r++) {
+        const wordCount = "0x" + r.toString(16).padStart(4, "0");
+        tableStr += wordCount;
+        for (let ln = 0; ln < linkCount; ln++) {
+          const bx = Math.floor(r / 9);
+          const segRow = r % 9;
+          tableStr += "\t 0x" + segmentsData[ln][bx][segRow];
+        }
+        tableStr += "\n";
+      }
+      document.getElementById("tableOutput").textContent = tableStr;
+      document.getElementById("tableOutputArea").style.display = "block";
+    });
+
+    document.getElementById("copyButton").addEventListener("click", async function() {
+      const code = document.getElementById("vhdlOutput").textContent;
+      try {
+        await navigator.clipboard.writeText(code);
+        showToast("Code copied to clipboard!");
+        const button = document.getElementById("copyButton");
+        const originalText = button.textContent;
+        button.textContent = "Copied!";
+        setTimeout(() => { button.textContent = originalText; }, 2000);
+      } catch (err) {
+        showToast("Failed to copy code", "error");
+      }
+    });
+
+    document.getElementById("copyTableButton").addEventListener("click", async function() {
+      const tableText = document.getElementById("tableOutput").textContent;
+      try {
+        await navigator.clipboard.writeText(tableText);
+        showToast("Table copied to clipboard!");
+        const btn = document.getElementById("copyTableButton");
+        const originalText = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = originalText; }, 2000);
+      } catch (err) {
+        showToast("Failed to copy table", "error");
+      }
+    });
+
+    function showToast(message, type = "success") {
+      document.querySelectorAll('.toast').forEach(toast => toast.remove());
+      const toast = document.createElement("div");
+      toast.classList.add("toast");
+      if (type === "error") toast.style.background = "var(--error)";
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = "slideIn 0.3s ease reverse";
+        setTimeout(() => toast.remove(), 300);
+      }, 2700);
+    }
+  </script>
+
+  <style>
+    .info-line {
+      border-top: 1px solid var(--border);
+      padding: 1rem 0;
+      margin-bottom: 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+  </style>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
