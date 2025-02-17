@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FPGA Floorplan - Interactive Pblock Creator</title>
+    <style>
+        /* Previous styles remain the same until .clock-region */
+        :root {
+            --primary-color: #242424;
+            --primary-hover: #2c2c2e;
+            --background: #000000;
+            --surface: #000000;
+            --surface-2: #000000;
+            --text: #ffffff;
+            --text-secondary: #a8a8a8;
+            --border: rgba(255, 255, 255, 0.1);
+            --success: #30d158;
+            --error: #ff453a;
+            /* Add pblock colors - Adjusted for better contrast with white text and hover effect */
+            --pblock-colors: #ff7f50, #70db93, #70db93, #ffd700, #87cefa, #98fb98, #ee82ee, #afeeee; /* Example adjusted colors, removed red-like #f08080, added more distinct colors */
+            --pblock-hover-outline: #00bfff; /* Light blue outline for hover */
+            --pblock-hover-bg-lighten: rgba(255, 255, 255, 0.2); /* Slight white overlay for hover - Increased opacity for better visibility */
+            --pblock-overlay-bg: rgba(0, 0, 0, 0.6); /* Dark overlay background */
+        }
+
+        /* Previous styles remain same until .clock-region */
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            font-family: 'Consolas', monospace;
+            margin: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fpga-container {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            max-width: 1200px;
+            display: flex;
+            gap: 20px;
+            position: relative; /* Make container relative for absolute positioning of overlay */
+        }
+
+        .slr-column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced gap between SLRs */
+        }
+
+        .slr {
+            border: 2px solid;
+            border-radius: 6px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .slr-label {
+            position: absolute;
+            left: -35px; /* Adjusted left to move label further out */
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            font-weight: bold;
+            font-size: 1.2em;
+            pointer-events: none;
+            color: var(--text);
+        }
+
+        .clock-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            margin-left: 30px;
+        }
+
+        .clock-region {
+            aspect-ratio: 1;
+            background: var(--primary-color);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            cursor: pointer;
+            transition: background-color 0.2s, outline-color 0.2s; /* Smooth transitions */
+            position: relative;
+            user-select: none;
+            overflow: hidden; /* To contain exclamation mark */
+            outline-offset: -1px; /* To prevent outline from increasing size */
+        }
+
+        .clock-region.current-selection {
+            background: rgba(48, 209, 88, 0.5);
+            color: var(--background);
+        }
+
+        /* Pblock Colors - Using CSS variables for easier management */
+        .clock-region[data-pblock-index="0"] { background: var(--pblock-colors-0, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="1"] { background: var(--pblock-colors-1, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="2"] { background: var(--pblock-colors-2, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="3"] { background: var(--pblock-colors-3, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="4"] { background: var(--pblock-colors-4, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="5"] { background: var(--pblock-colors-5, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="6"] { background: var(--pblock-colors-6, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="7"] { background: var(--pblock-colors-7, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="8"] { background: var(--pblock-colors-8, var(--pblock-colors)); }
+        .clock-region[data-pblock-index="9"] { background: var(--pblock-colors-9, var(--pblock-colors)); }
+
+
+        .clock-region.prohibit-region {
+            background-color: var(--error); /* Red background for PROHIBIT regions */
+        }
+
+        .overlap-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.8em;
+            color: #ffffff; /* White exclamation mark */
+            font-weight: bold;
+        }
+
+        .clock-region.pblock-hover-effect {
+            outline: 2px solid var(--pblock-hover-outline); /* Solid outline on pblock hover */
+            background-color: var(--pblock-hover-bg-lighten); /* Lighten background slightly */
+            z-index: 2; /* Ensure outline and overlay are on top of overlaps */
+        }
+
+        .pblock-name-overlay {
+            position: absolute;
+            background-color: var(--pblock-overlay-bg);
+            color: var(--text);
+            display: none; /* Hidden by default, shown by JS */
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em; /* Increased font size for better visibility */
+            font-weight: bold;
+            z-index: 3; /* Overlay on top of everything */
+            pointer-events: none; /* Make overlay non-interactive */
+            border-radius: 5px; /* Optional: rounded corners for overlay */
+            padding: 5px 10px; /* Add padding to the overlay text */
+            text-align: center; /* Ensure text is centered within overlay */
+        }
+
+
+        /* Rest of the previous styles */
+        .controls {
+            background: var(--surface-2);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            min-width: 300px;
+        }
+
+        .pblock-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pblock-item {
+            background: var(--primary-color);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column; /* Stack items vertically */
+            gap: 5px; /* Add some gap between items */
+        }
+
+        .pblock-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pblock-item-info {
+            display: flex;
+            align-items: center;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+         .clock-region.prohibit-region {
+            background-color: var(--error); /* Red background for PROHIBIT regions */
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+        }
+
+        input, select {
+            background: var(--primary-color);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+            width: calc(100% - 20px);
+        }
+
+        .color-indicator {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+            border-radius: 3px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .color-indicator.prohibit-color {
+            background-color: var(--error) !important; /* Red color for PROHIBIT indicator */
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="fpga-container" id="fpgaContainer">
+        <div class="slr-column">
+            <div class="slr" data-slr="3">
+                <div class="slr-label">SLR3</div>
+                <div class="clock-grid" id="slr3"></div>
+            </div>
+            <div class="slr" data-slr="2">
+                <div class="slr-label">SLR2</div>
+                <div class="clock-grid" id="slr2"></div>
+            </div>
+            <div class="slr" data-slr="1">
+                <div class="slr-label">SLR1</div>
+                <div class="clock-grid" id="slr1"></div>
+            </div>
+            <div class="slr" data-slr="0">
+                <div class="slr-label">SLR0</div>
+                <div class="clock-grid" id="slr0"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+          <h3>Floorplan Helper (xcvu13p-flga2577-2-e)</h3>
+            <h4>Pblock Controls</h4>
+            <input type="text" id="pblockName" placeholder="Enter pblock name">
+            <input type="text" id="cellsList" placeholder="Enter cells list">
+
+            <div class="property-controls">
+                <select id="propertySelect">
+                    <option value="">No additional properties</option>
+                    <option value="PROHIBIT">PROHIBIT</option>
+                    <option value="IS_SOFT">IS_SOFT</option>
+                </select>
+            </div>
+
+            <button id="createPblock">Create Pblock</button>
+            <button id="clearSelection">Clear Selection</button>
+            <button id="clearAll">Clear All Pblocks</button>
+
+            <div class="pblock-list" id="pblockList">
+                <h3>Created Pblocks</h3>
+            </div>
+        </div>
+        <div class="pblock-name-overlay" id="globalPblockOverlay"></div>
+    </div>
+
+    <script>
+        let isSelecting = false;
+        let currentSelection = new Set();
+        let pblocks = [];
+        let startRegion = null;
+        let globalOverlay = document.getElementById('globalPblockOverlay');
+        const fpgaContainer = document.getElementById('fpgaContainer');
+
+        const pblockColors = [
+            '#ff7f50', '#70db93', '#ffd700', '#87cefa', '#98fb98', '#ee82ee', '#afeeee', '#a0522d', '#dda0dd', '#ffa07a' // More colors
+        ];
+
+        function createClockRegions(slrId, slrNumber) {
+            const grid = document.getElementById(slrId);
+            const startY = slrNumber * 4;
+
+            for(let localY = 3; localY >= 0; localY--) {
+                for(let x = 0; x < 8; x++) {
+                    const region = document.createElement('div');
+                    region.className = 'clock-region';
+                    const globalY = startY + localY;
+                    region.textContent = `X${x}Y${globalY}`;
+                    region.dataset.x = x;
+                    region.dataset.y = globalY;
+                    region.dataset.coord = `X${x}Y${globalY}`;
+                    grid.appendChild(region);
+
+                    region.addEventListener('mousedown', (e) => {
+                        if (!region.dataset.pblockIndex) { // Prevent selection of already pblocked regions
+                            isSelecting = true;
+                            startRegion = region;
+                            currentSelection.clear();
+                            updateSelection(region);
+                            e.preventDefault();
+                        }
+                    });
+
+                    region.addEventListener('mouseenter', () => {
+                        if (isSelecting && !region.dataset.pblockIndex) { // Continue range selection only if selecting and not already pblocked
+                            updateSelectionRange(startRegion, region);
+                        }
+                    });
+
+
+                    region.addEventListener('mouseenter', function() {
+                        if (this.dataset.pblockIndex !== undefined) {
+                            const pblockIndex = parseInt(this.dataset.pblockIndex);
+                            highlightPblockRegions(pblockIndex);
+                            // Global overlay is now handled by pblock list hover
+                        }
+                    });
+
+                    region.addEventListener('mouseleave', function() {
+                        removePblockHighlight();
+                        hideGlobalPblockOverlay();
+                    });
+                }
+            }
+        }
+
+        function updateSelection(region) {
+            if (!currentSelection.has(region.dataset.coord)) {
+                currentSelection.add(region.dataset.coord);
+            } else {
+                currentSelection.delete(region.dataset.coord);
+            }
+            updateVisualSelection();
+        }
+
+        function updateSelectionRange(start, end) {
+            currentSelection.clear();
+            const startX = parseInt(start.dataset.x);
+            const startY = parseInt(start.dataset.y);
+            const endX = parseInt(end.dataset.x);
+            const endY = parseInt(end.dataset.y);
+
+            const minX = Math.min(startX, endX);
+            const maxX = Math.max(startX, endX);
+            const minY = Math.min(startY, endY);
+            const maxY = Math.max(startY, endY);
+
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    const coord = `X${x}Y${y}`;
+                    const region = document.querySelector(`.clock-region[data-coord="${coord}"]`);
+                    if (!region.dataset.pblockIndex) { // Select only non-pblocked regions in range
+                        currentSelection.add(coord);
+                    }
+                }
+            }
+            updateVisualSelection();
+        }
+
+        function updateVisualSelection() {
+            document.querySelectorAll('.clock-region').forEach(region => {
+                region.classList.toggle('current-selection',
+                    currentSelection.has(region.dataset.coord));
+            });
+        }
+
+        function getRegionBounds(regions) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            regions.forEach(coord => {
+                const [x, y] = coord.match(/X(\d+)Y(\d+)/).slice(1).map(Number);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
+            });
+            return { minX, maxX, minY, maxY };
+        }
+
+        function generateConstraints(pblock) {
+            const { name, cells, bounds, property } = pblock;
+            let constraints = `create_pblock ${name}\n`;
+            constraints += `add_cells_to_pblock [get_pblocks ${name}] [get_cells -quiet [list ${cells}]]\n`;
+            constraints += `resize_pblock [get_pblocks ${name}] -add {CLOCKREGION_X${bounds.minX}Y${bounds.minY}:CLOCKREGION_X${bounds.maxX}Y${bounds.maxY}}\n`;
+
+            if (property) {
+                constraints += `set_property ${property} 1 [get_pblocks ${name}]\n`;
+            }
+
+            return constraints;
+        }
+
+        function createPblock() {
+            const nameInput = document.getElementById('pblockName');
+            const cellsInput = document.getElementById('cellsList');
+            const name = nameInput.value.trim();
+            const cells = cellsInput.value.trim();
+            const property = document.getElementById('propertySelect').value;
+
+            if (!name || !cells || currentSelection.size === 0) {
+                alert('Please fill in all fields and select regions');
+                return;
+            }
+
+            if (name.includes(' ') || !/^[a-zA-Z0-9_]+$/.test(name)) {
+                alert('Pblock name cannot contain spaces or illegal characters. Use only alphanumeric characters and underscores.');
+                nameInput.value = '';
+                return;
+            }
+
+            if (cells.includes(' ')) {
+                alert('Cells list cannot contain spaces.');
+                cellsInput.value = '';
+                return;
+            }
+
+            // Check for duplicate name or cell list
+            if (pblocks.some(p => p.name === name)) {
+                alert('Pblock name already exists. Please use a different name.');
+                nameInput.value = '';
+                return;
+            }
+            if (pblocks.some(p => p.cells === cells)) {
+                alert('Cell list already exists in another pblock. Please use a different cell list.');
+                cellsInput.value = '';
+                return;
+            }
+
+
+            const pblockIndex = pblocks.length;
+            if (pblockIndex >= pblockColors.length && property !== 'PROHIBIT') { // Allow unlimited PROHIBIT pblocks, but limit others by color array length
+                alert(`Maximum number of non-PROHIBIT pblocks reached (${pblockColors.length}). PROHIBIT pblocks can still be created.`);
+                return;
+            }
+
+            const bounds = getRegionBounds(currentSelection);
+            const pblock = { name, cells, bounds, property, regions: new Set(currentSelection), index: pblockIndex };
+            pblocks.push(pblock);
+
+            // Color the regions and handle overlaps
+            currentSelection.forEach(coord => {
+                const region = document.querySelector(`.clock-region[data-coord="${coord}"]`);
+                let overlapCount = parseInt(region.dataset.overlapCount) || 0;
+                overlapCount++;
+                region.dataset.overlapCount = overlapCount;
+
+                if (overlapCount === 1) {
+                    region.dataset.pblockIndex = pblockIndex;
+                    if (property === 'PROHIBIT') {
+                        region.style.backgroundColor = 'var(--error)'; // Always red for PROHIBIT
+                        region.classList.add('prohibit-region');
+                    } else {
+                        region.style.backgroundColor = pblockColors[pblockIndex % pblockColors.length]; // Cycle through other colors
+                        region.classList.remove('prohibit-region');
+                    }
+                }
+
+                // Update overlap indicator
+                let overlapIndicator = region.querySelector('.overlap-indicator');
+                if (!overlapIndicator) {
+                    overlapIndicator = document.createElement('span');
+                    overlapIndicator.className = 'overlap-indicator';
+                    region.appendChild(overlapIndicator);
+                }
+                overlapIndicator.textContent = ''.repeat(overlapCount);
+
+            });
+
+
+            const constraints = generateConstraints(pblock);
+
+            const pblockDiv = document.createElement('div');
+            pblockDiv.className = 'pblock-item';
+            pblockDiv.dataset.pblockIndex = pblockIndex;
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'pblock-item-header';
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'pblock-item-info';
+            infoDiv.title = name;
+            const colorIndicator = document.createElement('span');
+            colorIndicator.className = `color-indicator ${property === 'PROHIBIT' ? 'prohibit-color' : ''}`;
+            colorIndicator.style.backgroundColor = property === 'PROHIBIT' ? 'var(--error)' : pblockColors[pblockIndex % pblockColors.length];
+            infoDiv.appendChild(colorIndicator);
+            const nameSpan = document.createTextNode(`${name} ${property ? `(${property})` : ''}`);
+            infoDiv.appendChild(nameSpan);
+            headerDiv.appendChild(infoDiv);
+
+            const buttonGroup = document.createElement('div');
+            const copyButton = document.createElement('button');
+            copyButton.textContent = 'Copy Constraints';
+            copyButton.onclick = function() { copyConstraints(pblockIndex); };
+            buttonGroup.appendChild(copyButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete Pblock';
+            deleteButton.onclick = function() { deletePblock(pblockIndex); };
+            buttonGroup.appendChild(deleteButton);
+
+            headerDiv.appendChild(buttonGroup);
+            pblockDiv.appendChild(headerDiv);
+
+
+            const preElement = document.createElement('pre');
+            preElement.style.fontSize = '0.8em';
+            preElement.style.marginTop = '5px';
+            preElement.textContent = constraints;
+            pblockDiv.appendChild(preElement);
+
+
+            document.getElementById('pblockList').appendChild(pblockDiv);
+
+            pblockDiv.addEventListener('mouseenter', handlePblockListHover);
+            pblockDiv.addEventListener('mouseleave', handlePblockListMouseLeave);
+
+
+            currentSelection.clear();
+            updateVisualSelection();
+
+            nameInput.value = '';
+            cellsInput.value = '';
+            document.getElementById('propertySelect').value = '';
+        }
+
+        function copyConstraints(index) {
+            const pblock = pblocks[index];
+            const constraints = generateConstraints(pblock);
+            navigator.clipboard.writeText(constraints)
+                .then(() => alert('Constraints copied to clipboard!'))
+                .catch(err => console.error('Failed to copy:', err));
+        }
+
+        function deletePblock(index) {
+            const deletedPblock = pblocks[index];
+            pblocks.splice(index, 1); // Remove from pblocks array
+            document.getElementById('pblockList').innerHTML = '<h3>Created Pblocks</h3>'; // Clear list for re-render
+
+            // Clear pblock from clock regions and re-render pblockList
+            deletedPblock.regions.forEach(coord => {
+                const region = document.querySelector(`.clock-region[data-coord="${coord}"]`);
+                let overlapCount = parseInt(region.dataset.overlapCount) || 0;
+                overlapCount--;
+                region.dataset.overlapCount = overlapCount;
+
+                if (overlapCount === 0) {
+                    delete region.dataset.pblockIndex;
+                    delete region.dataset.overlapCount;
+                    region.style.backgroundColor = '';
+                    region.classList.remove('prohibit-region');
+                    const overlapIndicator = region.querySelector('.overlap-indicator');
+                    if (overlapIndicator) {
+                        region.removeChild(overlapIndicator);
+                    }
+                } else {
+                    // Update overlap indicator text
+                    const overlapIndicator = region.querySelector('.overlap-indicator');
+                    if (overlapIndicator) {
+                        overlapIndicator.textContent = '*'.repeat(overlapCount);
+                    }
+                }
+            });
+
+
+            // Re-index pblock indices in regions and pblock list items
+            document.querySelectorAll('.clock-region').forEach(region => {
+                if (region.dataset.pblockIndex && parseInt(region.dataset.pblockIndex) > index) {
+                    region.dataset.pblockIndex = parseInt(region.dataset.pblockIndex) - 1;
+                }
+            });
+            document.querySelectorAll('.pblock-item').forEach(item => {
+                if (item.dataset.pblockIndex && parseInt(item.dataset.pblockIndex) > index) {
+                    item.dataset.pblockIndex = parseInt(item.dataset.pblockIndex) - 1;
+                }
+            });
+
+
+            // Re-render pblock list and re-attach event listeners
+            pblocks.forEach((pblock, newIndex) => {
+                const pblockDiv = document.createElement('div');
+                pblockDiv.className = 'pblock-item';
+                pblockDiv.dataset.pblockIndex = newIndex; // Update index
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'pblock-item-header';
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'pblock-item-info';
+                infoDiv.title = pblock.name;
+                const colorIndicator = document.createElement('span');
+                colorIndicator.className = `color-indicator ${pblock.property === 'PROHIBIT' ? 'prohibit-color' : ''}`;
+                colorIndicator.style.backgroundColor = pblock.property === 'PROHIBIT' ? 'var(--error)' : pblockColors[newIndex % pblockColors.length];
+                infoDiv.appendChild(colorIndicator);
+                const nameSpan = document.createTextNode(`${pblock.name} ${pblock.property ? `(${pblock.property})` : ''}`);
+                infoDiv.appendChild(nameSpan);
+                headerDiv.appendChild(infoDiv);
+
+
+                const buttonGroup = document.createElement('div');
+                const copyButton = document.createElement('button');
+                copyButton.textContent = 'Copy Constraints';
+                copyButton.onclick = function() { copyConstraints(newIndex); };
+                buttonGroup.appendChild(copyButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete Pblock';
+                deleteButton.onclick = function() { deletePblock(newIndex); };
+                buttonGroup.appendChild(deleteButton);
+                headerDiv.appendChild(buttonGroup);
+                pblockDiv.appendChild(headerDiv);
+
+
+                const preElement = document.createElement('pre');
+                preElement.style.fontSize = '0.8em';
+                preElement.style.marginTop = '5px';
+                preElement.textContent = generateConstraints(pblock);
+                pblockDiv.appendChild(preElement);
+
+
+                document.getElementById('pblockList').appendChild(pblockDiv);
+                pblockDiv.addEventListener('mouseenter', handlePblockListHover);
+                pblockDiv.addEventListener('mouseleave', handlePblockListMouseLeave);
+            });
+            hideGlobalPblockOverlay(); // Hide overlay after deletion
+        }
+
+
+        function clearSelection() {
+            currentSelection.clear();
+            updateVisualSelection();
+        }
+
+        function clearAll() {
+            currentSelection.clear();
+            pblocks = [];
+            document.querySelectorAll('.clock-region').forEach(region => {
+                delete region.dataset.pblockIndex;
+                delete region.dataset.overlapCount;
+                region.style.backgroundColor = '';
+                region.classList.remove('prohibit-region');
+                region.classList.remove('pblock-hover-effect');
+                const overlapIndicator = region.querySelector('.overlap-indicator');
+                if (overlapIndicator) {
+                    region.removeChild(overlapIndicator);
+                }
+                hideGlobalPblockOverlay();
+            });
+            document.getElementById('pblockList').innerHTML = '<h3>Created Pblocks</h3>';
+        }
+
+        function highlightPblockRegions(pblockIndex) {
+            if (pblocks[pblockIndex]) {
+                const regions = pblocks[pblockIndex].regions;
+                regions.forEach(coord => {
+                    const regionElement = document.querySelector(`.clock-region[data-coord="${coord}"]`);
+                    if (regionElement) {
+                        regionElement.classList.add('pblock-hover-effect');
+                    }
+                });
+            }
+        }
+
+        function removePblockHighlight() {
+            document.querySelectorAll('.clock-region').forEach(region => {
+                region.classList.remove('pblock-hover-effect');
+            });
+        }
+
+        function showGlobalPblockOverlay(pblockIndex) {
+            if (pblocks[pblockIndex]) {
+                const pblock = pblocks[pblockIndex];
+                const bounds = pblock.bounds;
+
+                const startRegionElement = document.querySelector(`.clock-region[data-coord="X${bounds.minX}Y${bounds.maxY}"]`);
+                const endRegionElement = document.querySelector(`.clock-region[data-coord="X${bounds.maxX}Y${bounds.minY}"]`);
+
+                if (!startRegionElement || !endRegionElement) return;
+
+                const startRect = startRegionElement.getBoundingClientRect();
+                const endRect = endRegionElement.getBoundingClientRect();
+                const containerRect = fpgaContainer.getBoundingClientRect();
+
+
+                globalOverlay.textContent = pblock.name;
+                globalOverlay.style.display = 'flex';
+                globalOverlay.style.left = `${startRect.left - containerRect.left}px`;
+                globalOverlay.style.top = `${endRect.top - containerRect.top}px`;
+                globalOverlay.style.width = `${endRect.right - startRect.left}px`;
+                globalOverlay.style.height = `${startRect.bottom - endRect.top}px`;
+
+
+            } else {
+                hideGlobalPblockOverlay();
+            }
+        }
+
+
+        function hideGlobalPblockOverlay() {
+            globalOverlay.style.display = 'none';
+        }
+
+
+        function handlePblockListHover(event) {
+            const pblockIndex = event.currentTarget.dataset.pblockIndex;
+            if (pblockIndex !== undefined) {
+                highlightPblockRegions(pblockIndex);
+                showGlobalPblockOverlay(pblockIndex);
+            }
+        }
+
+        function handlePblockListMouseLeave(event) {
+            removePblockHighlight();
+            hideGlobalPblockOverlay();
+        }
+
+
+        // Initialize the grid
+        createClockRegions('slr3', 3);
+        createClockRegions('slr2', 2);
+        createClockRegions('slr1', 1);
+        createClockRegions('slr0', 0);
+
+
+        // Event listeners
+        document.addEventListener('mouseup', () => {
+            isSelecting = false;
+        });
+
+        document.addEventListener('mouseleave', () => {
+            isSelecting = false;
+        });
+
+        document.getElementById('createPblock').addEventListener('click', createPblock);
+        document.getElementById('clearSelection').addEventListener('click', clearSelection);
+        document.getElementById('clearAll').addEventListener('click', clearAll);
+
+        // Prevent text selection while dragging
+        document.addEventListener('selectstart', (e) => {
+            if (isSelecting) {
+                e.preventDefault();
+            }
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+        });
+    </script>
+</body>
+</html>
