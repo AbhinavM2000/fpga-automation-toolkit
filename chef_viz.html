@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHEF Visualizer - Config to Architecture</title>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.15.6/js/jsplumb.min.js"></script>
+    <style>
+               :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #2a2a3a;
+            --canvas-bg: #313244;
+            --text-color: #cdd6f4;
+            --border-color: #45475a;
+            --primary-color: #89b4fa;
+            --primary-hover: #b4befe;
+            --danger-color: #f38ba8;
+            --source-bg: #a6e3a1;
+            --source-border: #94e2cd;
+            --sink-bg: #fab387;
+            --sink-border: #f9e2af;
+            --block-bg: #74c7ec;
+            --block-border: #89dceb;
+            --connector-color: #cba6f7;
+            --physical-connector-color: #e8dc79;
+
+            --virtual-connector-color: #cba6f7;
+
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 40px);
+        }
+
+        .tools-panel {
+            width: 320px; 
+            background: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin-right: 20px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: var(--canvas-bg);
+        }
+
+        .canvas {
+            width: 5000px;
+            height: 5000px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            background-color: var(--canvas-bg);
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            background: var(--panel-bg);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .canvas-control-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .canvas-control-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .block {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 8px;
+            min-width: 140px;
+            min-height: 90px;
+            padding: 12px;
+            cursor: move;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+            transition: box-shadow: 0.3s ease, transform: 0.1s ease;
+        }
+
+        .block:hover {
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .block:active {
+            transform: scale(1.02);
+        }
+
+        .block:not(.source):not(.sink) {
+            background: rgba(116, 199, 236, 0.2);
+            border-color: var(--block-border);
+        }
+
+        .source {
+            background: rgba(166, 227, 161, 0.2);
+            border-color: var(--source-border);
+        }
+
+        .sink {
+            background: rgba(250, 179, 135, 0.2);
+            border-color: var(--sink-border);
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .block-title {
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-color);
+        }
+
+        .port-container {
+            display: flex;
+            justify-content: space-between;
+            height: calc(100% - 30px);
+        }
+
+        .input-ports,
+        .output-ports {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 20px;
+        }
+
+        .port {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 5px;
+            cursor: pointer;
+            position: relative;
+            background: var(--primary-color);
+            border: 2px solid var(--primary-hover);
+            transition: transform: 0.2s ease;
+        }
+
+        .port:hover {
+            transform: scale(1.2);
+        }
+
+        .port-number {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-color);
+            font-size: 10px;
+            white-space: nowrap;
+            background: var(--panel-bg);
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity: 0.2s ease;
+        }
+
+        .port:hover .port-number {
+            opacity: 1;
+        }
+
+        .input-ports .port {
+            right: -18px;
+        }
+
+        .output-ports .port {
+            left: -18px;
+        }
+
+        .jtk-endpoint,
+        .jtk-connector {
+            z-index: 1000;
+        }
+        .action-btn {
+            background: var(--primary-color);
+            color: white;
+            border: 0;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            width: 100%;
+            text-align: left;
+            font-weight: bold;
+            transition: background-color: 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea { 
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { 
+            outline: 2px solid var(--primary-color);
+            border-color: transparent;
+        }
+
+        .export-section {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .remove-btn {
+            background: var(--danger-color);
+            color: white;
+            border: 0;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color: 0.2s ease, transform: 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: #f95d81;
+            transform: scale(1.1);
+        }
+
+        h2 {
+            color: var(--text-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+            opacity: 0.7;
+            transition: opacity: 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            opacity: 1;
+        }
+
+        .jtk-overlay {
+
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tools-panel">
+            <h2>CHEF Visualizer</h2>
+            <input type="file" id="config-upload" accept=".txt" class="action-btn">
+<button id="download-btn" class="action-btn" onclick="window.location.href='https://abhinavm2000.github.io/fpga-automation-toolkit/chef_alpha_v.html'">
+  CHEF
+</button>
+
+ </div>
+        <div class="canvas-container">
+            <div id="canvas" class="canvas"></div>
+            <div class="canvas-controls">
+                <button class="canvas-control-btn" id="zoom-in">+</button>
+                <button class="canvas-control-btn" id="zoom-out">-</button>
+                <button class="canvas-control-btn" id="center-view">⊙</button>
+            </div>
+        </div>
+    </div>
+
+  <script>
+    const jsPlumbInstance = jsPlumb.getInstance({
+        DragOptions: { cursor: 'move', zIndex: 2000 },
+        Connector: ['Bezier', { curviness: 50 }],
+        Endpoint: ['Dot', { radius: 6 }],
+        ConnectionOverlays: [
+            ['Arrow', { location: 1, width: 10, length: 10 }],
+        ],
+        Container: "canvas"
+    });
+
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let startX, startY;
+
+    document.getElementById('zoom-in').addEventListener('click', () => {
+        scale = Math.min(2, scale + 0.1);
+        updateCanvasTransform();
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', () => {
+        scale = Math.max(0.5, scale - 0.1);
+        updateCanvasTransform();
+    });
+
+    document.getElementById('center-view').addEventListener('click', resetView);
+
+    function updateCanvasTransform() {
+        const canvas = document.getElementById('canvas');
+        canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        jsPlumbInstance.setZoom(scale);
+        jsPlumbInstance.repaintEverything();
+    }
+
+    function resetView() {
+        scale = 1;
+        panX = 0;
+        panY = 0;
+        updateCanvasTransform();
+    }
+
+    document.addEventListener('mousedown', (e) => {
+        if (e.button === 1 || e.ctrlKey) {
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            document.body.style.cursor = 'grabbing';
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateCanvasTransform();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        document.body.style.cursor = 'default';
+    });
+
+    document.querySelector('.canvas-container').addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        scale = Math.min(2, Math.max(0.5, scale + delta));
+        updateCanvasTransform();
+    });
+
+    document.getElementById('config-upload').addEventListener('change', handleFileUpload);
+
+    async function handleFileUpload(event) {
+        const file = event.target.files[0];
+        const text = await file.text();
+        parseConfig(text);
+    }
+
+    function parseConfig(configText) {
+        jsPlumbInstance.reset();
+        document.getElementById('canvas').innerHTML = '';
+
+        const blocks = [];
+        const connections = [];
+        let currentBlock = null;
+
+        configText.split('\n').forEach(line => {
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('[')) {
+                const [sectionType, ...nameParts] = trimmed.slice(1, -1).split(' ');
+                const type = sectionType.toLowerCase();
+                if (['input', 'board', 'output'].includes(type)) {
+                    currentBlock = {
+                        type,
+                        name: nameParts.join(' '),
+                        inputs: 0,
+                        outputs: 0
+                    };
+                    blocks.push(currentBlock);
+                }
+            } else if (currentBlock && trimmed.includes('=')) {
+                const [key, value] = trimmed.split('=').map(s => s.trim());
+
+                if (key.startsWith('input.')) {
+                    const port = parseInt(key.split('.')[1]);
+                    currentBlock.inputs = Math.max(currentBlock.inputs, port + 1);
+                    connections.push({
+                        source: value.trim(),
+                        target: currentBlock,
+                        targetPort: port
+                    });
+                } else if (key.startsWith('output')) {
+                    if (key.includes('.')) {
+                        const port = parseInt(key.split('.')[1]);
+                        currentBlock.outputs = Math.max(currentBlock.outputs, port + 1);
+                    } else {
+                        currentBlock.outputs++;
+                    }
+                }
+            }
+        });
+
+        const blockElements = new Map();
+        let yPos = 50;
+
+        blocks.forEach(block => {
+            const typeConfig = {
+                'input': { class: 'source', inputs: 0, outputs: block.outputs },
+                'board': { class: 'ip-block', inputs: block.inputs, outputs: block.outputs },
+                'output': { class: 'sink', inputs: block.inputs, outputs: 0 }
+            }[block.type];
+
+            const el = createBlockElement(
+                block.name,
+                typeConfig.class,
+                typeConfig.outputs,
+                typeConfig.inputs,
+                100,
+                yPos,
+                block.name.toLowerCase().replace(/ /g, '-')
+            );
+
+            initializePorts(el);
+            blockElements.set(block.name.toLowerCase(), el);
+            yPos += 150;
+        });
+
+        connections.forEach(conn => {
+            const sourceMatch = conn.source.match(/(virtual|physical) (\w+)_OUTPUT_(\d+)/i);
+            if (!sourceMatch) return;
+
+            const [_, type, sourceName, sourcePort] = sourceMatch;
+            const sourceBlockKey = sourceName.toLowerCase().replace(/_/g, '-');
+            const targetBlockKey = conn.target.name.toLowerCase();
+
+            const sourceBlock = blockElements.get(sourceBlockKey);
+            const targetBlock = blockElements.get(targetBlockKey);
+
+            if (sourceBlock && targetBlock) {
+                const sourcePortEl = sourceBlock.querySelector(
+                    `.output-ports .port[data-port-number="${sourcePort}"]`
+                );
+                const targetPortEl = targetBlock.querySelector(
+                    `.input-ports .port[data-port-number="${conn.targetPort}"]`
+                );
+
+                if (sourcePortEl && targetPortEl) {
+                    const connection = jsPlumbInstance.connect({
+                        source: sourcePortEl,
+                        target: targetPortEl,
+                        parameters: { physical: type === 'physical' }
+                    });
+
+                    connection.setPaintStyle({
+                        stroke: type === 'physical' ? '#e8dc79' : '#cba6f7',
+                        strokeWidth: type === 'physical' ? 3 : 2
+                    });
+                }
+            }
+        });
+
+        jsPlumbInstance.repaintEverything();
+    }
+
+    function createBlockElement(name, className, outputs, inputs, x, y, id) {
+        const block = document.createElement('div');
+        block.className = `block ${className}`;
+        block.id = id;
+        block.style.left = `${x}px`;
+        block.style.top = `${y}px`;
+        block.innerHTML = `
+            <div class="block-header">
+                <div class="block-title">${name}</div>
+            </div>
+            <div class="port-container">
+                <div class="input-ports"></div>
+                <div class="output-ports"></div>
+            </div>`;
+
+        for (let i = 0; i < inputs; i++) {
+            const port = document.createElement('div');
+            port.className = 'port input-port';
+            port.dataset.portNumber = i;
+            port.innerHTML = `<span class="port-number">${i}</span>`;
+            block.querySelector('.input-ports').appendChild(port);
+        }
+
+        for (let i = 0; i < outputs; i++) {
+            const port = document.createElement('div');
+            port.className = 'port output-port';
+            port.dataset.portNumber = i;
+            port.innerHTML = `<span class="port-number">${i}</span>`;
+            block.querySelector('.output-ports').appendChild(port);
+        }
+
+        document.getElementById('canvas').appendChild(block);
+        jsPlumbInstance.draggable(block);
+        return block;
+    }
+
+    function initializePorts(block) {
+        block.querySelectorAll('.port').forEach(port => {
+            jsPlumbInstance.addEndpoint(port, {
+                anchor: port.classList.contains('input-port') ? 'Left' : 'Right',
+                maxConnections: -1,
+                isSource: true,
+                isTarget: true,
+                endpoint: 'Dot',
+                paintStyle: { fill: '#89b4fa' }
+            });
+        });
+    }
+
+    jsPlumbInstance.bind("dblclick", conn => {
+        jsPlumbInstance.deleteConnection(conn);
+    });
+
+    jsPlumbInstance.bind("connection", conn => {
+        const isPhysical = conn.getParameter("physical");
+        conn.setPaintStyle({
+            stroke: isPhysical ? '#e8dc79' : '#cba6f7',
+            strokeWidth: isPhysical ? 3 : 2
+        });
+    });
+
+</script>
+</body>
+</html>
