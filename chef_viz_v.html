@@ -3,6 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<script>
+// Clear client-side storage
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear cookies
+    document.cookie.split(";").forEach(cookie => {
+        const [name] = cookie.split("=");
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    });
+
+    // Clear localStorage and sessionStorage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Clear IndexedDB databases
+    window.indexedDB.databases().then(dbs => {
+        dbs.forEach(db => {
+            window.indexedDB.deleteDatabase(db.name);
+        });
+    });
+});
+</script>
     <title>CHEF Visualizer - Config to Architecture</title>
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
