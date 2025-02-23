@@ -438,7 +438,7 @@ document.addEventListener('mouseup', (e) => {
     });
 
     document.getElementById('zoom-out').addEventListener('click', () => {
-        scale = Math.max(0.2, scale - 0.1);
+        scale = Math.max(0.1, scale - 0.1);
         updateCanvasTransform();
     });
 
