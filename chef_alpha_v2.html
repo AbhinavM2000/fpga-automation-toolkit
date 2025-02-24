@@ -812,7 +812,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
                     const outputPort = block.querySelector(`.output-ports .port[data-port-number="${j}"]`);
                     const connections = jsPlumbInstance.getConnections({ source: outputPort });
                     let outputType = 'virtual'; // Default to virtual
-                    let outputLabel = `virtual ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} LABEL = ${j}`;
+                    let outputLabel = `virtual ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`;
 
 
                     if (connections.length > 0) {
@@ -832,12 +832,12 @@ document.getElementById('export-btn').addEventListener('click', () => {
                                 }
                             });
                             if (j < rxBufferNames.length) {
-                                outputLabel = `${outputType} GCT_INPUT_${rxBufferNames[j]} LABEL = ${j}`; // Use outputType and GCT_INPUT_
+                                outputLabel = `${outputType} GCT_INPUT_${rxBufferNames[j]} CSP = ${j}`; // Use outputType and GCT_INPUT_
                             } else {
-                                outputLabel = `${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} LABEL = ${j}`; // Fallback with outputType
+                                outputLabel = `${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`; // Fallback with outputType
                             }
                         } else {
-                             outputLabel = `${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} LABEL = ${j}`; // Default label with outputType
+                             outputLabel = `${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`; // Default label with outputType
                         }
                     }
                     connectionMap += `    output: ${outputLabel}\n`;
@@ -911,12 +911,12 @@ for (let j = 0; j < inputCountForIP; j++) {
     if (rxBufferNames.length > 0 && j < rxBufferNames.length) {
         const bufferName = rxBufferNames[j];
         const inputNumber = bufferName.substring(1);
-        inputLabelLine = `    input.${inputNumber} =  ${connectionType} GCT_INPUT_${bufferName}   CSP_PI54_PL54`; // Use connectionType here
+        inputLabelLine = `    input.${inputNumber} =  ${connectionType} GCT_INPUT_${bufferName}   CSP`; // Use connectionType here
     } else {
         if (connectionType === 'virtual') {
-            inputLabelLine = `    input.${j} =   virtual ${virtualLinkLabel} LABEL`; // Use connectionType and virtualLinkLabel
+            inputLabelLine = `    input.${j} =   virtual ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
         } else {
-            inputLabelLine = `    input.${j} =   physical ${virtualLinkLabel} LABEL`; // Use connectionType and virtualLinkLabel
+            inputLabelLine = `    input.${j} =   physical ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
         }
     }
     connectionMap += inputLabelLine + '\n';
@@ -944,7 +944,7 @@ for (let j = 0; j < outputCountForIP; j++) {
         const outputNumber = bufferName.substring(1);
         outputLabelLine = `    output.${outputNumber}  =  ${outputType}  GCT_OUTPUT_${bufferName}   CSP `; // Use outputType here
     } else {
-        outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} LABEL`; // Use outputType here
+        outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP`; // Use outputType here
     }
     outputLines.push(outputLabelLine); // Store output line in outputLines array
 
@@ -1002,9 +1002,9 @@ for (let j = 0; j < outputCountForIP; j++) {
 
 
                         if (connectionType === 'virtual') {
-                             connectionMap += `    input.${j} =   virtual ${sinkInputLabel} MISC\n`;
+                             connectionMap += `    input.${j} =   virtual ${sinkInputLabel} CSP\n`;
                         } else {
-                             connectionMap += `    input.${j} =   physical ${sinkInputLabel} MISC\n`;
+                             connectionMap += `    input.${j} =   physical ${sinkInputLabel} CSP\n`;
                         }
 
                     } else {
