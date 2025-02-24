@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -360,7 +361,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 </style>
-</head>
+
+
+
 <body>
     <div class="container">
         <div class="tools-panel">
@@ -575,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasContainer.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.05 : 0.05;
-        if (scale + delta >= 0.5 && scale + delta <= 2) {
+        if (scale + delta >= 0.1 && scale + delta <= 2) {
             const rect = canvasContainer.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -875,6 +878,10 @@ document.getElementById('export-btn').addEventListener('click', () => {
                     });
                 }
 
+                let outputLines = []; // Initialize outputLines array
+                let dependencyLines = []; // Initialize dependencyLines array
+
+
 const inputCountForIP = rxBufferNames.length > 0 ? rxBufferNames.length : parseInt(block.dataset.inputs);
 
 for (let j = 0; j < inputCountForIP; j++) {
@@ -939,14 +946,21 @@ for (let j = 0; j < outputCountForIP; j++) {
     } else {
         outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} LABEL`; // Use outputType here
     }
-    connectionMap += outputLabelLine + '\n';
+    outputLines.push(outputLabelLine); // Store output line in outputLines array
+
+    // Modified Dependency Section - Set dependency.outputlinklabel = 0 for each output
+    const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j;
+    dependencyLines.push(`    dependency.${outputNumberForDependency} = 0`); // Store dependency line in dependencyLines array
 }
 
+                outputLines.forEach(line => { // Append all output lines first
+                    connectionMap += line + '\n';
+                });
+                dependencyLines.forEach(line => { // Append all dependency lines next
+                    connectionMap += line + '\n';
+                });
 
-                const dependencyCount = parseInt(block.dataset.inputs);
-                for (let j = 0; j < dependencyCount; j++) {
-                    connectionMap += `    dependency.${j} = ${j}\n`;
-                }
+
                 previousBlockName = blockName;
             } else if (blockType === 'sink') {
                 connectionMap += `[output ${blockName}]\n`;
@@ -1163,7 +1177,4 @@ jsPlumbInstance.bind("dblclick", function (connection, originalEvent) {
 
 });
     </script>
-
-
 </body>
-</html>
