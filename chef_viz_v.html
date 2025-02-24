@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <script>
      const jsPlumbInstance = jsPlumb.getInstance({
-        DragOptions: { cursor: 'move', zIndex: 2000 },
+        DragOptions: { cursor: 'move', zIndex: 2000,distance: 1 },
         Connector: ['Bezier', { curviness: 50 }],
         Endpoint: ['Dot', { radius: 6 }],
         ConnectionOverlays: [
