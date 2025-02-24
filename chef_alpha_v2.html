@@ -880,78 +880,99 @@ document.getElementById('export-btn').addEventListener('click', () => {
 
                 let outputLines = []; // Initialize outputLines array
                 let dependencyLines = []; // Initialize dependencyLines array
+                let firstInputPortNumber = null; // Initialize firstInputPortNumber
+
+                const inputCountForIP = rxBufferNames.length > 0 ? rxBufferNames.length : parseInt(block.dataset.inputs);
+
+                // DETERMINE firstInputPortNumber *BEFORE* output loop
+                for (let j = 0; j < inputCountForIP; j++) {
+                    const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+
+                    if (inputPort) { // Check if inputPort exists
+                        const connections = jsPlumbInstance.getConnections({ target: inputPort });
+                        if (connections.length > 0 && firstInputPortNumber === null) {
+                            firstInputPortNumber = j + (rxBufferNames.length > 0 ? parseInt(rxBufferNames[0].substring(1)) : 0) ; // Use IP block's input port number (j) + offset from buffer names if available
+                            break; // Exit loop after finding the first connected input
+                        }
+                    }
+                }
 
 
-const inputCountForIP = rxBufferNames.length > 0 ? rxBufferNames.length : parseInt(block.dataset.inputs);
+                for (let j = 0; j < inputCountForIP; j++) {
+                    const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+                    let isPhysicalInput = false;
+                    let connectionType = 'virtual'; // default to virtual if no connection or not physical
+                    let virtualLinkLabel = '(Not Connected)'; // default label
 
-for (let j = 0; j < inputCountForIP; j++) {
-    const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
-    let isPhysicalInput = false;
-    let connectionType = 'virtual'; // default to virtual if no connection or not physical
-    let virtualLinkLabel = '(Not Connected)'; // default label
+                    if (inputPort) { // Check if inputPort exists
+                        const connections = jsPlumbInstance.getConnections({ target: inputPort });
 
-    if (inputPort) { // Check if inputPort exists (in case bufRx has fewer entries than declared inputs)
-        const connections = jsPlumbInstance.getConnections({ target: inputPort });
-        if (connections.length > 0) {
-            const conn = connections[0];
-            isPhysicalInput = conn.getParameter("physical");
-            connectionType = isPhysicalInput ? 'physical' : 'virtual';
-            const srcBlock = conn.source.closest('.block');
-            const srcBlockName = srcBlock.dataset.name;
-            const srcBlockType = srcBlock.classList.contains('source') ? 'source' : 'ip-block';
-            const srcPortNum = conn.source.dataset.portNumber;
-            virtualLinkLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${srcPortNum}`;
-        } else {
-            connectionType = 'virtual'; // Explicitly set to virtual for not connected, though default is already virtual
-            virtualLinkLabel = '(Not Connected)';
-        }
-    }
-
-    let inputLabelLine;
-    if (rxBufferNames.length > 0 && j < rxBufferNames.length) {
-        const bufferName = rxBufferNames[j];
-        const inputNumber = bufferName.substring(1);
-        inputLabelLine = `    input.${inputNumber} =  ${connectionType} GCT_INPUT_${bufferName}   CSP`; // Use connectionType here
-    } else {
-        if (connectionType === 'virtual') {
-            inputLabelLine = `    input.${j} =   virtual ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
-        } else {
-            inputLabelLine = `    input.${j} =   physical ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
-        }
-    }
-    connectionMap += inputLabelLine + '\n';
-}
+                        if (connections.length > 0) {
+                            const conn = connections[0];
+                            isPhysicalInput = conn.getParameter("physical");
+                            connectionType = isPhysicalInput ? 'physical' : 'virtual';
+                            const srcBlock = conn.source.closest('.block');
+                            const srcBlockName = srcBlock.dataset.name;
+                            const srcBlockType = srcBlock.classList.contains('source') ? 'source' : 'ip-block';
+                            const srcPortNum = conn.source.dataset.portNumber;
+                            virtualLinkLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${srcPortNum}`;
+                        } else {
+                            connectionType = 'virtual'; // Explicitly set to virtual for not connected, though default is already virtual
+                            virtualLinkLabel = '(Not Connected)';
+                        }
+                    }
 
 
-const outputCountForIP = txBufferNames.length > 0 ? txBufferNames.length : parseInt(block.dataset.outputs); // Determine output count based on bufTx or default outputs
+                    let inputLabelLine;
+                    if (rxBufferNames.length > 0 && j < rxBufferNames.length) {
+                        const bufferName = rxBufferNames[j];
+                        const inputNumber = bufferName.substring(1);
+                        inputLabelLine = `    input.${inputNumber} =  virtual GCT_INPUT_${bufferName}   CSP`; // Force virtual here as per example
+                    } else {
+                        if (connectionType === 'virtual') {
+                            inputLabelLine = `    input.${j} =   virtual ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
+                        } else {
+                            inputLabelLine = `    input.${j} =   physical ${virtualLinkLabel} CSP`; // Use connectionType and virtualLinkLabel
+                        }
+                    }
+                    connectionMap += inputLabelLine + '\n';
+                }
 
-for (let j = 0; j < outputCountForIP; j++) {
-    const outputPort = block.querySelector(`.output-ports .port[data-port-number="${j}"]`);
-    let isPhysicalOutput = false;
-    if (outputPort) { // Check if outputPort exists (in case bufTx has fewer entries than declared outputs)
-        const outputConnections = jsPlumbInstance.getConnections({ source: outputPort });
-        for (const outputConn of outputConnections) {
-            if (outputConn.getParameter("physical")) {
-                isPhysicalOutput = true;
-                break;
-            }
-        }
-    }
-    const outputType = isPhysicalOutput ? 'physical' : 'virtual';
-    let outputLabelLine;
-    if (txBufferNames.length > 0 && j < txBufferNames.length) {
-        const bufferName = txBufferNames[j];
-        const outputNumber = bufferName.substring(1);
-        outputLabelLine = `    output.${outputNumber}  =  ${outputType}  GCT_OUTPUT_${bufferName}   CSP `; // Use outputType here
-    } else {
-        outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP`; // Use outputType here
-    }
-    outputLines.push(outputLabelLine); // Store output line in outputLines array
 
-    // Modified Dependency Section - Set dependency.outputlinklabel = 0 for each output
-    const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j;
-    dependencyLines.push(`    dependency.${outputNumberForDependency} = 0`); // Store dependency line in dependencyLines array
-}
+                const outputCountForIP = txBufferNames.length > 0 ? txBufferNames.length : parseInt(block.dataset.outputs); // Determine output count based on bufTx or default outputs
+
+                for (let j = 0; j < outputCountForIP; j++) {
+                    const outputPort = block.querySelector(`.output-ports .port[data-port-number="${j}"]`);
+                    let isPhysicalOutput = false;
+                    if (outputPort) { // Check if outputPort exists
+                        const outputConnections = jsPlumbInstance.getConnections({ source: outputPort });
+                        for (const outputConn of outputConnections) {
+                            if (outputConn.getParameter("physical")) {
+                                isPhysicalOutput = true;
+                                break;
+                            }
+                        }
+                    }
+                    const outputType = isPhysicalOutput ? 'physical' : 'virtual';
+                    let outputLabelLine;
+                    if (txBufferNames.length > 0 && j < txBufferNames.length) {
+                        const bufferName = txBufferNames[j];
+                        const outputNumber = bufferName.substring(1);
+                        outputLabelLine = `    output.${outputNumber}  =  ${outputType}  GCT_OUTPUT_${bufferName}   CSP `; // Use outputType here
+                    } else {
+                        outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP`; // Use outputType here
+                    }
+                    outputLines.push(outputLabelLine); // Store output line in outputLines array
+
+                    // Modified Dependency Section - Set dependency.outputlinkno = firstInputPortNumber for each output
+                    if (firstInputPortNumber !== null) {
+                        const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j + (txBufferNames.length > 0 ? parseInt(txBufferNames[0].substring(1)) : 0); // Use IP block's output port number as dependency key + offset from buffer names if available
+                        dependencyLines.push(`    dependency.${outputNumberForDependency} = ${firstInputPortNumber}`); // Store dependency line in dependencyLines array
+                    } else {
+                        const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j + (txBufferNames.length > 0 ? parseInt(txBufferNames[0].substring(1)) : 0); // Use IP block's output port number as dependency key + offset from buffer names if available
+                        dependencyLines.push(`    dependency.${outputNumberForDependency} = 0`); // If no input connection, default to 0
+                    }
+                }
 
                 outputLines.forEach(line => { // Append all output lines first
                     connectionMap += line + '\n';
@@ -1022,7 +1043,6 @@ for (let j = 0; j < outputCountForIP; j++) {
         a.download = 'ip_block_connections.txt';
         a.click();
     });
-
 jsPlumbInstance.bind("dblclick", function (connection, originalEvent) {
         jsPlumbInstance.deleteConnection(connection);
     });
