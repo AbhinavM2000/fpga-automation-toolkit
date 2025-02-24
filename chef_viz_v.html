@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -357,6 +358,17 @@ document.addEventListener('DOMContentLoaded', function() {
             border: 1px solid var(--border-color);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
+
+        /* Pulsing animation for connections */
+        @keyframes connection-pulse {
+            0% { stroke-dashoffset: 24; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        .jtk-connector.pulsing {
+            stroke-dasharray: 12 6; /* Adjust dash length and gap as needed */
+            animation: connection-pulse 1s linear infinite; /* Adjust animation duration and timing function */
+        }
     </style>
 </head>
 <body>
@@ -570,7 +582,7 @@ function parseConfig(configText) {
     blocks.forEach(block => {
         const connectedInputs = Array.from(block.connectedInputs).sort((a, b) => a - b);
         const connectedOutputs = Array.from(block.connectedOutputs).sort((a, b) => a - b);
-        
+
         const el = createBlockElement(
             block.name,
             block.type,
@@ -586,26 +598,27 @@ function parseConfig(configText) {
     // Create connections
     connections.forEach(conn => {
         if (!conn.sourceBlock) return;
-        
+
         const sourceElement = document.getElementById(conn.sourceBlock.name.toLowerCase());
         const targetElement = document.getElementById(conn.target.name.toLowerCase());
-        
+
         if (sourceElement && targetElement) {
             const sourcePort = sourceElement.querySelector(`.output-port[data-port-number="${conn.sourcePort}"]`);
             const targetPort = targetElement.querySelector(`.input-port[data-port-number="${conn.targetPort}"]`);
-            
+
             if (sourcePort && targetPort) {
                 const connection = jsPlumbInstance.connect({
                     source: sourcePort,
                     target: targetPort,
                     parameters: { physical: conn.connectionType === 'physical' }
                 });
-                
+
                 connection.setPaintStyle({
                     stroke: conn.connectionType === 'physical' ? '#e8dc79' : '#cba6f7',
                     strokeWidth: conn.connectionType === 'physical' ? 3 : 2
                 });
                 connection.getOverlay('connectionTypeLabel').setLabel(conn.connectionType);
+                connection.addClass("pulsing"); // Add pulsing class here
             }
         }
     });
@@ -620,17 +633,17 @@ function createBlockElement(name, type, outputs, inputs, x, y, id) {
     block.dataset.name = name;
     block.style.left = `${x}px`;
     block.style.top = `${y}px`;
-    
+
     const portContainer = document.createElement('div');
     portContainer.className = 'port-container';
-    
+
     // Create input ports
     const inputPorts = document.createElement('div');
     inputPorts.className = 'input-ports';
     inputs.forEach(port => {
         inputPorts.appendChild(createPort(port, 'input-port'));
     });
-    
+
     // Create output ports
     const outputPorts = document.createElement('div');
     outputPorts.className = 'output-ports';
@@ -640,14 +653,14 @@ function createBlockElement(name, type, outputs, inputs, x, y, id) {
 
     portContainer.appendChild(inputPorts);
     portContainer.appendChild(outputPorts);
-    
+
     block.innerHTML = `
         <div class="block-header">
             <div class="block-title">${name}</div>
         </div>
     `;
     block.appendChild(portContainer);
-    
+
     document.getElementById('canvas').appendChild(block);
     jsPlumbInstance.draggable(block);
     return block;
@@ -691,8 +704,10 @@ function createPort(portNumber, className) {
             strokeWidth: isPhysical ? 3 : 2
         });
          conn.getOverlay('connectionTypeLabel').setLabel(isPhysical ? 'physical' : 'virtual');
+         conn.connection.addClass("pulsing"); // Add pulsing class on new connections as well if needed
     });
 
 </script>
 </body>
 </html>
+
