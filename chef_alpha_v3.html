@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -775,7 +773,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-
 document.getElementById('export-btn').addEventListener('click', () => {
     let connectionMap = "[FEAST]\n";
     connectionMap += "ignore_physical_constraints = false\n";
@@ -787,7 +784,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
     const blocks = Array.from(document.querySelectorAll('.block'));
     const connectionGraph = new Map();
 
-    // First pass: Build connection graph
+    // Connection graph building remains same
     blocks.forEach(block => {
         const outputs = block.querySelectorAll('.output-ports .port');
         outputs.forEach(outputPort => {
@@ -816,13 +813,12 @@ document.getElementById('export-btn').addEventListener('click', () => {
         });
     });
 
-    // Helper function to get proper label for connection
     const getTargetLabel = (targetBlock, targetPort) => {
         if (targetBlock.classList.contains('ip-block')) {
             const bufRxData = targetBlock.dataset.bufRxData;
             if (bufRxData) {
                 const rxLines = bufRxData.trim().split('\n');
-                rxLines.shift(); // Remove header
+                rxLines.shift();
                 if (targetPort < rxLines.length) {
                     const bufferName = rxLines[targetPort].trim().split(/\s+/)[0];
                     return `${targetBlock.dataset.name.toUpperCase()}_INPUT_${bufferName}`;
@@ -832,7 +828,7 @@ document.getElementById('export-btn').addEventListener('click', () => {
         return null;
     };
 
-    // Generate source sections with proper labels
+    // Source section remains same
     blocks.filter(b => b.classList.contains('source')).forEach(sourceBlock => {
         const blockName = sourceBlock.dataset.name.replace(/ /g, '-');
         connectionMap += `[input ${blockName}]\n`;
@@ -845,157 +841,173 @@ document.getElementById('export-btn').addEventListener('click', () => {
             const connections = jsPlumbInstance.getConnections({ source: outputPort });
 
             let label = `${sourceBlock.dataset.name.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j}`;
+            let cspValue = j;
 
-            // Check if connected to IP block and get target label
             connections.forEach(conn => {
                 const targetBlock = conn.target.closest('.block');
                 if (targetBlock.classList.contains('ip-block')) {
-const targetPort = conn.target.dataset.portNumber;
+                    const targetPort = conn.target.dataset.portNumber;
                     const targetLabel = getTargetLabel(targetBlock, targetPort);
-                    if (targetLabel) {
-                        label = targetLabel;
-                    } else {
-                        label = `${targetBlock.dataset.name.toUpperCase()}_INPUT_R${targetPort}`;
-                    }                
-}
+                    if (targetLabel) label = targetLabel;
+
+                    const bufRxData = targetBlock.dataset.bufRxData;
+                    if (bufRxData) {
+                        const rxLines = bufRxData.trim().split('\n');
+                        rxLines.shift();
+                        if (targetPort < rxLines.length) {
+                            const bufferLine = rxLines[targetPort].trim().split(/\s+/);
+                            if (bufferLine.length >= 3) {
+                                cspValue = parseInt(bufferLine[2]);
+                            }
+                        }
+                    }
+                }
             });
 
-            connectionMap += `    output: virtual ${label} CSP = ${j}\n`;
+            connectionMap += `    output: virtual ${label} CSP = ${cspValue}\n`;
         }
         connectionMap += "\n";
     });
 
-    // Generate IP board sections
-    blocks.filter(b => b.classList.contains('ip-block')).forEach(ipBlock => {
-        const blockName = ipBlock.dataset.name;
-        connectionMap += `[board ${blockName}]\n`;
-        connectionMap += `driver = APxFSv2\n`;
-        connectionMap += `board_config_file = bundle.tbz2\n`;
-        connectionMap += `pool = default\n\n`;
+blocks.filter(b => b.classList.contains('ip-block')).forEach(ipBlock => {
+    const blockName = ipBlock.dataset.name;
+    connectionMap += `[board ${blockName}]\n`;
+    connectionMap += `driver = APxFSv2\n`;
+    connectionMap += `board_config_file = bundle.tbz2\n`;
+    connectionMap += `pool = default\n\n`;
 
-        // Process inputs
-        const inputCount = parseInt(ipBlock.dataset.inputs);
-        for (let j = 0; j < inputCount; j++) {
-            const inputPort = ipBlock.querySelector(`.input-ports .port[data-port-number="${j}"]`);
-            const connections = jsPlumbInstance.getConnections({ target: inputPort });
+    // Process inputs with connection tracing
+    const bufRxData = ipBlock.dataset.bufRxData;
+    let rxBufferInfo = [];
+    if (bufRxData) {
+        const rxLines = bufRxData.trim().split('\n');
+        rxLines.shift();
+        rxBufferInfo = rxLines.map(line => {
+            const parts = line.trim().split(/\s+/);
+            return { bufferName: parts[0], column: parts[2] };
+        });
+    }
 
-            let label = `${blockName.toUpperCase()}_INPUT_R${j}`;
-            let connectionType = 'virtual';
+    const inputCount = parseInt(ipBlock.dataset.inputs);
+    for (let j = 0; j < inputCount; j++) {
+        const inputPort = ipBlock.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+        const connections = jsPlumbInstance.getConnections({ target: inputPort });
 
-            if (connections.length > 0) {
-                const conn = connections[0];
-                connectionType = conn.getParameter("physical") ? 'physical' : 'virtual';
-                const srcBlock = conn.source.closest('.block');
+        let rNumber = `R${j}`;
+        let inputNumber = j;
+        if (rxBufferInfo[j]) {
+            rNumber = rxBufferInfo[j].bufferName;
+            inputNumber = parseInt(rNumber.replace('R', ''), 10);
+        }
 
-                if (srcBlock.classList.contains('ip-block')) {
-                    // IP to IP connection
-                    const srcPort = conn.source.dataset.portNumber;
-                    label = `${srcBlock.dataset.name.toUpperCase()}_OUTPUT_T${srcPort}`;
-                } else if (srcBlock.classList.contains('source')) {
-                    // Source to IP connection (already handled in source section)
-                    label = getTargetLabel(ipBlock, j) || label;
+        let label = `${blockName.toUpperCase()}_INPUT_${rNumber}`;
+        let connectionType = 'virtual';
+
+        if (connections.length > 0) {
+            const conn = connections[0];
+            connectionType = conn.getParameter("physical") ? 'physical' : 'virtual';
+            const srcBlock = conn.source.closest('.block');
+            
+            if (srcBlock.classList.contains('ip-block')) {
+                const srcPort = conn.source.dataset.portNumber;
+                // Get actual T number from source block's TX buffer
+                const srcTxData = srcBlock.dataset.bufTxData;
+                let tNumber = `T${srcPort}`;
+                
+                if (srcTxData) {
+                    const txLines = srcTxData.trim().split('\n');
+                    txLines.shift();
+                    if (srcPort < txLines.length) {
+                        const bufferLine = txLines[srcPort].trim().split(/\s+/);
+                        tNumber = bufferLine[0];
+                    }
+                }
+                
+                label = `${srcBlock.dataset.name.toUpperCase()}_OUTPUT_${tNumber}`;
+            }
+        }
+
+        connectionMap += `    input.${inputNumber} = ${connectionType} ${label} CSP\n`;
+    }
+
+    // Process outputs with TX data
+    const bufTxData = ipBlock.dataset.bufTxData;
+    let txBufferInfo = [];
+    if (bufTxData) {
+        const txLines = bufTxData.trim().split('\n');
+        txLines.shift();
+        txBufferInfo = txLines.map(line => {
+            const parts = line.trim().split(/\s+/);
+            return { bufferName: parts[0], column: parts[2] };
+        });
+    }
+
+    const outputCount = txBufferInfo.length || parseInt(ipBlock.dataset.outputs);
+    const outputLines = [];
+    
+    for (let j = 0; j < outputCount; j++) {
+        const outputPort = ipBlock.querySelector(`.output-ports .port[data-port-number="${j}"]`);
+        let isPhysical = false;
+
+        if (outputPort) {
+            const connections = jsPlumbInstance.getConnections({ source: outputPort });
+            connections.forEach(conn => {
+                if (conn.getParameter("physical")) isPhysical = true;
+            });
+        }
+
+        let tNumber = `T${j}`;
+        let outputNumber = j;
+        if (txBufferInfo[j]) {
+            tNumber = txBufferInfo[j].bufferName;
+            outputNumber = parseInt(tNumber.replace('T', ''), 10);
+        }
+
+        const outputType = isPhysical ? 'physical' : 'virtual';
+        const outputLabel = `${blockName.toUpperCase()}_OUTPUT_${tNumber}`;
+        outputLines.push(`    output.${outputNumber} = ${outputType} ${outputLabel} CSP`);
+    }
+
+    outputLines.forEach(line => connectionMap += line + '\n');
+    connectionMap += "\n";
+});
+
+// Corrected sink section
+const sinkBlock = blocks.find(b => b.classList.contains('sink'));
+if (sinkBlock) {
+    connectionMap += `[output ${sinkBlock.dataset.name}]\n`;
+    connectionMap += "format = text\n";
+    connectionMap += `filename = /tmp/feast-output.txt\n\n`;
+
+    const inputCount = parseInt(sinkBlock.dataset.inputs);
+    for (let j = 0; j < inputCount; j++) {
+        const inputPort = sinkBlock.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+        const connections = jsPlumbInstance.getConnections({ target: inputPort });
+
+        if (connections.length > 0) {
+            const conn = connections[0];
+            const srcBlock = conn.source.closest('.block');
+            const srcPort = conn.source.dataset.portNumber;
+
+            // Get actual T number from source block's TX buffer
+            let tNumber = `T${srcPort}`;
+            const srcTxData = srcBlock.dataset.bufTxData;
+            if (srcTxData) {
+                const txLines = srcTxData.trim().split('\n');
+                txLines.shift();
+                if (srcPort < txLines.length) {
+                    const bufferLine = txLines[srcPort].trim().split(/\s+/);
+                    tNumber = bufferLine[0];
                 }
             }
 
-            connectionMap += `    input.${j} = ${connectionType} ${label} CSP\n`;
-        }
-
-        // NEW DEPENDENCY LOGIC START
-        const bufRxData = ipBlock.dataset.bufRxData;
-        const bufTxData = ipBlock.dataset.bufTxData;
-
-        let rxBufferNames = [];
-        if (bufRxData) {
-            const rxLines = bufRxData.trim().split('\n');
-            rxLines.shift();
-            rxLines.forEach(line => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length >= 3) rxBufferNames.push(parts[0]);
-            });
-        }
-
-        let txBufferNames = [];
-        if (bufTxData) {
-            const txLines = bufTxData.trim().split('\n');
-            txLines.shift();
-            txLines.forEach(line => {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length >= 2) txBufferNames.push(parts[0]);
-            });
-        }
-
-        let firstInputPortNumber = null;
-        const inputCountForIP = rxBufferNames.length || parseInt(ipBlock.dataset.inputs);
-
-        // Find first connected input port
-        for (let j = 0; j < inputCountForIP; j++) {
-            const inputPort = ipBlock.querySelector(`.input-ports .port[data-port-number="${j}"]`);
-            if (!inputPort) continue;
-            const connections = jsPlumbInstance.getConnections({ target: inputPort });
-            if (connections.length > 0 && firstInputPortNumber === null) {
-                firstInputPortNumber = j + (rxBufferNames.length ? parseInt(rxBufferNames[0].substring(1)) : 0);
-                break;
-            }
-        }
-
-        // Process outputs with new dependency calculation
-        const outputCountForIP = txBufferNames.length || parseInt(ipBlock.dataset.outputs);
-        let outputLines = [];
-        let dependencyLines = [];
-
-        for (let j = 0; j < outputCountForIP; j++) {
-            const outputPort = ipBlock.querySelector(`.output-ports .port[data-port-number="${j}"]`);
-            let isPhysical = false;
-
-            // Check physical connection (UNCHANGED)
-            if (outputPort) {
-                const connections = jsPlumbInstance.getConnections({ source: outputPort });
-                connections.forEach(conn => {
-                    if (conn.getParameter("physical")) isPhysical = true;
-                });
-            }
-
-            // Build output line (UNCHANGED LABEL LOGIC)
-            const outputType = isPhysical ? 'physical' : 'virtual';
-            const outputLabel = `${blockName.toUpperCase()}_OUTPUT_T${j}`;
-            outputLines.push(`    output.${j} = ${outputType} ${outputLabel} CSP`);
-
-            // Calculate dependency (NEW LOGIC)
-            const outputNum = txBufferNames[j] ? parseInt(txBufferNames[j].substring(1)) : j;
-            dependencyLines.push(`    dependency.${outputNum} = ${firstInputPortNumber ?? 0}`);
-        }
-
-        // Write outputs and dependencies
-        outputLines.forEach(line => connectionMap += line + '\n');
-        dependencyLines.forEach(line => connectionMap += line + '\n');
-        connectionMap += "\n";
-        // NEW DEPENDENCY LOGIC END
-    });
-
-    // Generate sink section
-    const sinkBlock = blocks.find(b => b.classList.contains('sink'));
-    if (sinkBlock) {
-        connectionMap += `[output ${sinkBlock.dataset.name}]\n`;
-        connectionMap += "format = text\n";
-        connectionMap += `filename = /tmp/feast-output.txt\n\n`;
-
-        const inputCount = parseInt(sinkBlock.dataset.inputs);
-        for (let j = 0; j < inputCount; j++) {
-            const inputPort = sinkBlock.querySelector(`.input-ports .port[data-port-number="${j}"]`);
-            const connections = jsPlumbInstance.getConnections({ target: inputPort });
-
-            if (connections.length > 0) {
-                const conn = connections[0];
-                const srcBlock = conn.source.closest('.block');
-                const srcPort = conn.source.dataset.portNumber;
-                const label = `${srcBlock.dataset.name.toUpperCase()}_OUTPUT_T${srcPort}`;
-                connectionMap += `    input.${j} = virtual ${label} CSP\n`;
-            } else {
-                connectionMap += `    input.${j} = (Not Connected)\n`;
-            }
+            const label = `${srcBlock.dataset.name.toUpperCase()}_OUTPUT_${tNumber}`;
+            connectionMap += `    input.${j} = virtual ${label} CSP\n`;
+        } else {
+            connectionMap += `    input.${j} = (Not Connected)\n`;
         }
     }
-
+}
     const blob = new Blob([connectionMap], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
