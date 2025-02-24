@@ -1,0 +1,1178 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+<script>
+// Clear client-side storage
+document.addEventListener('DOMContentLoaded', function() {
+    // Clear cookies
+    document.cookie.split(";").forEach(cookie => {
+        const [name] = cookie.split("=");
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    });
+
+    // Clear localStorage and sessionStorage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Clear IndexedDB databases
+    window.indexedDB.databases().then(dbs => {
+        dbs.forEach(db => {
+            window.indexedDB.deleteDatabase(db.name);
+        });
+    });
+});
+</script>
+    <title>CHEF — Config Helper for Easy FEASTing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.15.6/js/jsplumb.min.js"></script>
+    <style>
+    
+       :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #2a2a3a;
+            --canvas-bg: #313244;
+            --text-color: #cdd6f4;
+            --border-color: #45475a;
+            --primary-color: #89b4fa;
+            --primary-hover: #b4befe;
+            --danger-color: #f38ba8;
+            --source-bg: #a6e3a1;
+            --source-border: #94e2cd;
+            --sink-bg: #fab387;
+            --sink-border: #f9e2af;
+            --block-bg: #74c7ec;
+            --block-border: #89dceb;
+            --connector-color: #cba6f7;
+            --physical-connector-color: #e8dc79;
+
+            --virtual-connector-color: #cba6f7;
+
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 40px);
+        }
+
+        .tools-panel {
+            width: 320px; 
+            background: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            margin-right: 20px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: var(--canvas-bg);
+        }
+
+        .canvas {
+            width: 5000px;
+            height: 5000px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            background-color: var(--canvas-bg);
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+            background: var(--panel-bg);
+            padding: 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .canvas-control-btn {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .canvas-control-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .block {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 8px;
+            min-width: 140px;
+            min-height: 90px;
+            padding: 12px;
+            cursor: move;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+            transition: box-shadow: 0.3s ease, transform: 0.1s ease;
+        }
+
+        .block:hover {
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .block:active {
+            transform: scale(1.02);
+        }
+
+        .block:not(.source):not(.sink) {
+            background: rgba(116, 199, 236, 0.2);
+            border-color: var(--block-border);
+        }
+
+        .source {
+            background: rgba(166, 227, 161, 0.2);
+            border-color: var(--source-border);
+        }
+
+        .sink {
+            background: rgba(250, 179, 135, 0.2);
+            border-color: var(--sink-border);
+        }
+
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .block-title {
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-color);
+        }
+
+        .port-container {
+            display: flex;
+            justify-content: space-between;
+            height: calc(100% - 30px);
+        }
+
+        .input-ports,
+        .output-ports {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 20px;
+        }
+
+        .port {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 5px;
+            cursor: pointer;
+            position: relative;
+            background: var(--primary-color);
+            border: 2px solid var(--primary-hover);
+            transition: transform: 0.2s ease;
+        }
+
+        .port:hover {
+            transform: scale(1.2);
+        }
+
+        .port-number {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-color);
+            font-size: 10px;
+            white-space: nowrap;
+            background: var(--panel-bg);
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity: 0.2s ease;
+        }
+
+        .port:hover .port-number {
+            opacity: 1;
+        }
+
+        .input-ports .port {
+            right: -18px;
+        }
+
+        .output-ports .port {
+            left: -18px;
+        }
+
+        .jtk-endpoint,
+        .jtk-connector {
+            z-index: 1000;
+        }
+        .action-btn {
+            background: var(--primary-color);
+            color: white;
+            border: 0;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            width: 100%;
+            text-align: left;
+            font-weight: bold;
+            transition: background-color: 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea { 
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { 
+            outline: 2px solid var(--primary-color);
+            border-color: transparent;
+        }
+
+        .export-section {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .remove-btn {
+            background: var(--danger-color);
+            color: white;
+            border: 0;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color: 0.2s ease, transform: 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: #f95d81;
+            transform: scale(1.1);
+        }
+
+        h2 {
+            color: var(--text-color);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+            opacity: 0.7;
+            transition: opacity: 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            opacity: 1;
+        }
+
+        .jtk-overlay {
+
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+
+</style>
+
+
+
+<body>
+    <div class="container">
+        <div class="tools-panel">
+            <h2>CHEF - Config Helper for Easy FEASTing</h2>
+
+             <div class="form-group">
+                <label for="source-outputs">Source Outputs</label>
+                <input type="number" id="source-outputs" min="0" max="1000" value="1">
+            </div>
+             <button id="add-source-block" class="action-btn">Add Source Block</button>
+            <div class="form-group">
+                <label for="sink-inputs">Sink Inputs</label>
+                <input type="number" id="sink-inputs" min="0" max="10" value="1">
+            </div>
+            <button id="update-sink" class="action-btn">Update Sink</button>
+            <hr>
+            <button id="add-ip-block" class="action-btn">Add IP Block</button>
+            <div class="form-group">
+                <label for="block-name">Block Name</label>
+                <input type="text" id="block-name" placeholder="Enter block name">
+            </div>
+            <div class="form-group">
+                <label for="num-inputs">Inputs</label>
+                <input type="number" id="num-inputs" min="0" max="32" value="1">
+            </div>
+            <div class="form-group">
+                <label for="num-outputs">Outputs</label>
+                <input type="number" id="num-outputs" min="0" max="32" value="1">
+            </div>
+            <div class="form-group">
+                <label for="buf-rx-file">Buf RX File (Optional)</label>
+                <input type="file" id="buf-rx-file" accept=".txt, .csv">
+            </div>
+            <div class="form-group">
+                <label for="buf-tx-file">Buf TX File (Optional)</label>
+                <input type="file" id="buf-tx-file" accept=".txt, .csv">
+            </div>
+            <hr>
+
+            <div class="form-group">
+                <label for="source-block-select">Source Block</label>
+                <select id="source-block-select"></select>
+            </div>
+            <div class="form-group">
+                <label for="target-block-select">Target Block</label>
+                <select id="target-block-select"></select>
+            </div>
+            <button id="auto-connect-btn" class="action-btn">1:1 Connect</button>
+
+            <div class="form-group">
+                <label for="port-mapping">Port Mapping (e.g., 0-2:1-3, 0-5:1-6p)</label>
+                <textarea id="port-mapping" rows="3" placeholder="Enter mapping..."></textarea>
+            </div>
+             <button id="custom-connect-btn" class="action-btn">Custom Connect</button>
+            <hr>
+
+            <div class="export-section">
+                <button id="export-btn" class="action-btn">Export Connection Map</button>
+                <button id="reset-view-btn" class="action-btn" style="margin-top: 10px;" onclick="window.location.href='https://abhinavm2000.github.io/fpga-automation-toolkit/chef_viz_v.html'">Visualize Config</button>
+
+
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div id="canvas" class="canvas"></div>
+            <div class="canvas-controls">
+                <button class="canvas-control-btn" id="zoom-in">+</button>
+                <button class="canvas-control-btn" id="zoom-out">-</button>
+                <button class="canvas-control-btn" id="center-view">⊙</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+
+
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+    let isDarkMode = true;
+    const themeToggle = document.getElementById('theme-toggle');
+
+    themeToggle.addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        themeToggle.textContent = isDarkMode ? '🌙' : '☀️';
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+        document.documentElement.style.setProperty('--bg-color', isDarkMode ? '#1e1e2e' : '#f8f9fa');
+        document.documentElement.style.setProperty('--panel-bg', isDarkMode ? '#2a2a3a' : '#ffffff');
+        document.documentElement.style.setProperty('--canvas-bg', isDarkMode ? '#313244' : '#f0f3f6');
+        document.documentElement.style.setProperty('--text-color', isDarkMode ? '#cdd6f4' : '#333333');
+        document.documentElement.style.setProperty('--border-color', isDarkMode ? '#45475a' : '#dee2e6');
+        document.documentElement.style.setProperty('--primary-color', isDarkMode ? '#89b4fa' : '#007bff');
+        document.documentElement.style.setProperty('--primary-hover', isDarkMode ? '#b4befe' : '#0069d9');
+        document.documentElement.style.setProperty('--danger-color', isDarkMode ? '#f38ba8' : '#dc3545');
+        document.documentElement.style.setProperty('--source-bg', isDarkMode ? 'rgba(166, 227, 161, 0.2)' : 'rgba(40, 167, 69, 0.1)');
+        document.documentElement.style.setProperty('--source-border', isDarkMode ? '#94e2cd' : '#28a745');
+        document.documentElement.style.setProperty('--sink-bg', isDarkMode ? 'rgba(250, 179, 135, 0.2)' : 'rgba(255, 193, 7, 0.1)');
+        document.documentElement.style.setProperty('--sink-border', isDarkMode ? '#f9e2af' : '#ffc107');
+        document.documentElement.style.setProperty('--block-bg', isDarkMode ? 'rgba(116, 199, 236, 0.2)' : 'rgba(13, 110, 253, 0.1)');
+        document.documentElement.style.setProperty('--block-border', isDarkMode ? '#89dceb' : '#0d6efd');
+        document.documentElement.style.setProperty('--connector-color', isDarkMode ? '#cba6f7' : '#6610f2');
+        document.documentElement.style.setProperty('--physical-connector-color', '#e8dc79');
+        document.documentElement.style.setProperty('--virtual-connector-color', isDarkMode ? '#cba6f7' : '#6610f2');
+        jsPlumbInstance.repaintEverything();
+    });
+    const jsPlumbInstance = jsPlumb.getInstance({
+        DragOptions: { cursor: 'move', zIndex: 2000 },
+        ConnectionsDetachable: true,
+        Connector: ['Bezier', { curviness: 50 }],
+        Endpoint: ['Dot', { radius: 6 }],
+        ConnectionOverlays: [
+            ['Arrow', { location: 1, width: 10, length: 10 }],
+        ],
+        Container: "canvas",
+    });
+
+    const canvas = document.getElementById('canvas');
+    const canvasContainer = document.querySelector('.canvas-container');
+    let blockCounter = 0;
+    let sourceBlockCounter = 0;
+    let sinkBlockId = 'sink-block';
+    let scale = 1;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let hoverOverlay = null;
+    let isDraggingBackground = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    canvasContainer.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            canvasContainer.style.cursor = 'grabbing';
+        } else if (e.target === canvasContainer) {
+            isDraggingBackground = true;
+            dragStartX = e.clientX - panX;
+            dragStartY = e.clientY - panY;
+            canvasContainer.style.cursor = 'grabbing';
+        }
+    });
+
+    canvasContainer.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateCanvasTransform();
+        } else if (isDraggingBackground) {
+            panX = e.clientX - dragStartX;
+            panY = e.clientY - dragStartY;
+            updateCanvasTransform();
+            jsPlumbInstance.repaintEverything();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        isDraggingBackground = false;
+        canvasContainer.style.cursor = 'default';
+    });
+
+    function updateCanvasTransform() {
+        canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+        jsPlumbInstance.setZoom(scale);
+    }
+    document.getElementById('zoom-in').addEventListener('click', () => {
+        if (scale < 2) {
+            scale += 0.1;
+            updateCanvasTransform();
+        }
+    });
+    document.getElementById('zoom-out').addEventListener('click', () => {
+        if (scale > 0.25) {
+            scale -= 0.1;
+            updateCanvasTransform();
+        }
+    });
+    document.getElementById('center-view').addEventListener('click', resetView);
+    document.getElementById('reset-view-btn').addEventListener('click', resetView);
+
+    function resetView() {
+        scale = 1;
+        panX = 0;
+        panY = 0;
+        updateCanvasTransform();
+    }
+    canvasContainer.addEventListener('mousedown', (e) => {
+        if (e.button === 1 || e.ctrlKey) {
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            canvasContainer.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateCanvasTransform();
+        }
+    });
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        canvasContainer.style.cursor = 'default';
+    });
+    canvasContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        if (scale + delta >= 0.1 && scale + delta <= 2) {
+            const rect = canvasContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const newScale = scale + delta;
+            panX = mouseX - (mouseX - panX) * (newScale / scale);
+            panY = mouseY - (mouseY - panY) * (newScale / scale);
+            scale = newScale;
+            updateCanvasTransform();
+        }
+    });
+
+    function ensureCanvasSize(x, y) {
+        const margin = 300;
+        if (x > (canvas.clientWidth - margin) / scale - panX) {
+            canvas.style.width = `${canvas.clientWidth + 1000}px`;
+        }
+        if (y > (canvas.clientHeight - margin) / scale - panY) {
+            canvas.style.height = `${canvas.clientHeight + 1000}px`;
+        }
+    }
+
+    const createSourceBlock = (outputs, x, y, blockId) => {
+        const name = `Source ${sourceBlockCounter + 1}`;
+        const className = 'source';
+        blockId = blockId || `source-block-${sourceBlockCounter++}`;
+        return createBlock(name, className, outputs, 0, x, y, blockId);
+    };
+
+    const createBlock = (name, className, outputs, inputs, x, y, blockId) => {
+        ensureCanvasSize(x, y);
+        blockId = blockId || (className === 'ip-block' ? `ip-block-${blockCounter++}` : `${className}-block`);
+        let block = document.getElementById(blockId);
+        if (block) {
+            jsPlumbInstance.remove(block);
+        }
+        block = createBlockElement(blockId, className, name, x, y);
+        block.dataset.name = name;
+        block.dataset.inputs = inputs;
+        block.dataset.outputs = outputs;
+        block.querySelector('.input-ports').innerHTML = '';
+        block.querySelector('.output-ports').innerHTML = '';
+        for (let i = 0; i < inputs; i++) createPort(block, 'input', i);
+        for (let i = 0; i < outputs; i++) createPort(block, 'output', i);
+        initializeBlockPorts(block);
+        jsPlumbInstance.draggable(block, {
+            containment: false,
+            stop: (event) => {
+                const blockPosX = parseInt(block.style.left);
+                const blockPosY = parseInt(block.style.top);
+                ensureCanvasSize(blockPosX, blockPosY);
+            }
+        });
+        updateBlockSelectOptions();
+        return block;
+    };
+    const createBlockElement = (id, className, name, x, y) => {
+        const block = document.createElement('div');
+        block.className = `block ${className}`;
+        block.id = id;
+        block.style.left = `${x}px`;
+        block.style.top = `${y}px`;
+        block.innerHTML = `
+            <div class="block-header">
+                <div class="block-title">${name}</div>
+                ${className === 'ip-block' ? '<button class="remove-btn">×</button>' : ''}
+            </div>
+            <div class="port-container">
+                <div class="input-ports"></div>
+                <div class="output-ports"></div>
+            </div>`;
+        canvas.appendChild(block);
+        return block;
+    };
+    const createPort = (block, type, index) => {
+        const port = document.createElement('div');
+        port.className = `port ${type}-port`;
+        port.dataset.portId = `${block.id}-${type}-${index}`;
+        port.dataset.portType = type;
+        port.dataset.portNumber = index;
+        const portNumberSpan = document.createElement('span');
+        portNumberSpan.className = 'port-number';
+        portNumberSpan.textContent = index + 1;
+        port.appendChild(portNumberSpan);
+        block.querySelector(`.${type}-ports`).appendChild(port);
+    };
+    const initializeBlockPorts = (block) => {
+        const config = {
+            endpoint: 'Dot',
+            paintStyle: { fill: '#89b4fa' },
+            hoverPaintStyle: { fill: '#b4befe' },
+            maxConnections: -1,
+            isSource: true,
+            isTarget: true
+        };
+        block.querySelectorAll('.port').forEach(port => {
+            jsPlumbInstance.addEndpoint(port, {
+                ...config,
+                anchor: port.classList.contains('input-port') ? 'Left' : 'Right',
+            });
+        });
+    };
+
+    function initializeDefaultBlocks() {
+        createBlock('Sink', 'sink', 0, 1, 500, 100, sinkBlockId);
+    }
+    initializeDefaultBlocks();
+
+    jsPlumbInstance.bind("connection", function (info) {
+
+        info.connection.bind("click", function () {
+            let physical = this.getParameter("physical");
+            this.setParameter("physical", !physical);
+            updateConnectionStyle(this);
+        });
+
+        const isPhysical = info.connection.getParameter("physical");
+        const connectorStyle = isPhysical
+            ? { stroke: 'var(--physical-connector-color)', strokeWidth: 3 }
+            : { stroke: 'var(--virtual-connector-color)', strokeWidth: 2 };
+
+        info.connection.setPaintStyle(connectorStyle);
+        info.connection.repaint();
+    });
+
+    jsPlumbInstance.bind("connection:mouseover", function (connection) {
+        const currentPaintStyle = connection.getPaintStyle();
+        hoverOverlay = jsPlumbInstance.addOverlay(connection, ["Label", {
+            cssClass: "hover-overlay",
+            label: "<div style='width:10px; height:10px; background-color: " + currentPaintStyle.stroke + "; opacity:0.5; border-radius: 50%;'></div>",
+            location: 0.5
+        }]);
+
+    });
+
+    jsPlumbInstance.bind("connection:mouseout", function (connection) {
+        if (hoverOverlay) {
+            jsPlumbInstance.removeOverlay(connection, hoverOverlay.id);
+            hoverOverlay = null;
+        }
+        updateConnectionStyle(connection);
+    });
+
+    document.getElementById('add-source-block').addEventListener('click', () => {
+        const sourceOutputs = parseInt(document.getElementById('source-outputs').value);
+        const viewportWidth = canvasContainer.clientWidth;
+        const viewportHeight = canvasContainer.clientHeight;
+        const x = (viewportWidth / 2 - panX) / scale;
+        const y = (viewportHeight / 2 - panY) / scale;
+        createSourceBlock(sourceOutputs, x, y);
+    });
+
+    document.getElementById('update-sink').addEventListener('click', () => {
+        const sinkInputs = parseInt(document.getElementById('sink-inputs').value);
+        const sinkBlock = document.getElementById(sinkBlockId);
+        const sinkX = sinkBlock ? sinkBlock.offsetLeft : 500;
+        const sinkY = sinkBlock ? sinkBlock.offsetTop : 100;
+        createBlock('Sink', 'sink', 0, sinkInputs, sinkX, sinkY, sinkBlockId);
+    });
+
+    document.getElementById('add-ip-block').addEventListener('click', () => {
+        const name = document.getElementById('block-name').value || `IP Block ${blockCounter + 1}`;
+        const inputs = Math.max(0, parseInt(document.getElementById('num-inputs').value));
+        const outputs = Math.max(0, parseInt(document.getElementById('num-outputs').value));
+        const viewportWidth = canvasContainer.clientWidth;
+        const viewportHeight = canvasContainer.clientHeight;
+        const x = (viewportWidth / 2 - panX) / scale;
+        const y = (viewportHeight / 2 - panY) / scale;
+        const block = createBlock(name, 'ip-block', outputs, inputs, x, y);
+
+        const bufRxFile = document.getElementById('buf-rx-file').files[0];
+        const bufTxFile = document.getElementById('buf-tx-file').files[0];
+
+        if (bufRxFile) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                block.dataset.bufRxData = event.target.result;
+            };
+            reader.readAsText(bufRxFile);
+        }
+        if (bufTxFile) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                block.dataset.bufTxData = event.target.result;
+            };
+            reader.readAsText(bufTxFile);
+        }
+
+
+        block.querySelector('.remove-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            jsPlumbInstance.removeAllEndpoints(block);
+            jsPlumbInstance.remove(block);
+            updateBlockSelectOptions();
+        });
+    });
+
+
+document.getElementById('export-btn').addEventListener('click', () => {
+    let connectionMap = "[FEAST]\n";
+    connectionMap += "ignore_physical_constraints = false\n";
+    connectionMap += "buffer_step_lhc_clocks = 108\n";
+    connectionMap += "state_directory = /tmp/feast_state.%RUN_ID%\n\n";
+    connectionMap += "[hosts]\n";
+    connectionMap += "falcon4-linux = default\n\n";
+
+    const blocks = Array.from(document.querySelectorAll('.block'));
+    const sourceBlocks = blocks.filter(block => block.classList.contains('source'));
+    const sinkBlock = blocks.find(block => block.classList.contains('sink'));
+    const ipBlocks = blocks.filter(block => block.classList.contains('ip-block'));
+
+    const orderedBlocks = [...sourceBlocks, ...ipBlocks, sinkBlock].filter(Boolean);
+
+    for (let i = 0; i < orderedBlocks.length; i++) {
+        const block = orderedBlocks[i];
+        const blockName = block.dataset.name;
+        const blockId = block.id;
+        const blockType = block.classList.contains('source') ? 'source' :
+            block.classList.contains('sink') ? 'sink' : 'ip-block';
+
+        if (blockType === 'source') {
+            const inputSectionBlockName = blockName.replace(/ /g, '-');
+            connectionMap += `[input ${inputSectionBlockName}]\n`;
+
+            connectionMap += "format = text\n";
+            const filename = blockName.replace(/ /g, '-') + "-test-pattern.txt";
+            connectionMap += `filename = ${filename}\n\n`;
+
+            const outputCount = parseInt(block.dataset.outputs);
+            for (let j = 0; j < outputCount; j++) {
+                const outputPort = block.querySelector(`.output-ports .port[data-port-number="${j}"]`);
+                const connections = jsPlumbInstance.getConnections({ source: outputPort });
+                let outputType = 'virtual';
+                let outputLabel = `virtual ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`;
+
+                if (connections.length > 0) {
+                    const connection = connections[0];
+                    const isPhysicalConnection = connection.getParameter("physical");
+                    outputType = isPhysicalConnection ? 'physical' : 'virtual';
+
+                    const nextBlock = connection.target.closest('.block');
+                    if (nextBlock && nextBlock.classList.contains('ip-block') && nextBlock.dataset.bufRxData) {
+                        const rxLines = nextBlock.dataset.bufRxData.trim().split('\n');
+                        const rxBufferNames = [];
+                        for (let line of rxLines.slice(1)) { // Skip header line
+                            const parts = line.trim().split(/\s+/);
+                            if (parts.length >= 3) {
+                                rxBufferNames.push(parts[0]);
+                            }
+                        }
+                        if (j < rxBufferNames.length) {
+                            outputLabel = `virtual ${nextBlock.dataset.name.toUpperCase().replace(/ /g, '_')}_INPUT_${rxBufferNames[j]} CSP = ${j}`;
+                        } else {
+                            outputLabel = `virtual ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`; // Fallback if buffer names run out
+                        }
+                    } else {
+                        outputLabel = `${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP = ${j}`;
+                    }
+                }
+                connectionMap += `    output: ${outputLabel}\n`;
+            }
+
+
+        } else if (blockType === 'ip-block') {
+            connectionMap += `[board ${blockName}]\n`;
+            connectionMap += `driver = APxFSv2\n`;
+            connectionMap += `board_config_file = bundle.tbz2\n`;
+            connectionMap += `pool = default\n\n`;
+
+            const bufRxData = block.dataset.bufRxData;
+            const bufTxData = block.dataset.bufTxData;
+
+            let rxBufferNames = [];
+            if (bufRxData) {
+                const rxLines = bufRxData.trim().split('\n');
+                rxLines.shift();
+                rxLines.forEach(line => {
+                    const parts = line.trim().split(/\s+/);
+                    if (parts.length >= 3) {
+                        rxBufferNames.push(parts[0]);
+                    }
+                });
+            }
+
+            let txBufferNames = [];
+            if (bufTxData) {
+                const txLines = bufTxData.trim().split('\n');
+                txLines.shift();
+                txLines.forEach(line => {
+                    const parts = line.trim().split(/\s+/);
+                    if (parts.length >= 2) {
+                        txBufferNames.push(parts[0]);
+                    }
+                });
+            }
+
+            let outputLines = [];
+            let dependencyLines = [];
+            let firstInputPortNumber = null;
+
+            const inputCountForIP = rxBufferNames.length > 0 ? rxBufferNames.length : parseInt(block.dataset.inputs);
+
+            for (let j = 0; j < inputCountForIP; j++) {
+                const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+
+                if (inputPort) {
+                    const connections = jsPlumbInstance.getConnections({ target: inputPort });
+                    if (connections.length > 0 && firstInputPortNumber === null) {
+                        firstInputPortNumber = j;
+                        break;
+                    }
+                }
+            }
+
+
+            for (let j = 0; j < inputCountForIP; j++) {
+                const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+                let connectionType = 'virtual';
+                let virtualLinkLabel = '(Not Connected)';
+
+                if (inputPort) {
+                    const connections = jsPlumbInstance.getConnections({ target: inputPort });
+
+                    if (connections.length > 0) {
+                        const conn = connections[0];
+                        connectionType = conn.getParameter("physical") ? 'physical' : 'virtual';
+                        const srcBlock = conn.source.closest('.block');
+                        const srcBlockName = srcBlock.dataset.name;
+                        const srcPortNum = conn.source.dataset.portNumber;
+                        virtualLinkLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${srcPortNum}`;
+                    } else {
+                        connectionType = 'virtual';
+                        virtualLinkLabel = '(Not Connected)';
+                    }
+                }
+
+                let inputLabelLine;
+                if (rxBufferNames.length > 0 && j < rxBufferNames.length) {
+                    const bufferName = rxBufferNames[j];
+                    inputLabelLine = `    input.${bufferName.substring(1)} =  ${connectionType} ${blockName.toUpperCase().replace(/ /g, '_')}_INPUT_${bufferName}   CSP`;
+                } else {
+                    inputLabelLine = `    input.${j} =   ${connectionType} ${virtualLinkLabel} CSP`;
+                }
+                connectionMap += inputLabelLine + '\n';
+            }
+
+
+            const outputCountForIP = txBufferNames.length > 0 ? txBufferNames.length : parseInt(block.dataset.outputs);
+
+            for (let j = 0; j < outputCountForIP; j++) {
+                const outputPort = block.querySelector(`.output-ports .port[data-port-number="${j}"]`);
+                let isPhysicalOutput = false;
+                if (outputPort) {
+                    const outputConnections = jsPlumbInstance.getConnections({ source: outputPort });
+                    for (const outputConn of outputConnections) {
+                        if (outputConn.getParameter("physical")) {
+                            isPhysicalOutput = true;
+                            break;
+                        }
+                    }
+                }
+                const outputType = isPhysicalOutput ? 'physical' : 'virtual';
+                let outputLabelLine;
+                if (txBufferNames.length > 0 && j < txBufferNames.length) {
+                    const bufferName = txBufferNames[j];
+                    outputLabelLine = `    output.${bufferName.substring(1)}  =  ${outputType}  ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${bufferName}   CSP `;
+                } else {
+                    outputLabelLine = `    output.${j} =   ${outputType} ${blockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${j} CSP`;
+                }
+                outputLines.push(outputLabelLine);
+
+                if (firstInputPortNumber !== null) {
+                    const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j;
+                    dependencyLines.push(`    dependency.${outputNumberForDependency} = ${firstInputPortNumber}`);
+                } else {
+                    const outputNumberForDependency = txBufferNames.length > 0 && j < txBufferNames.length ? txBufferNames[j].substring(1) : j;
+                    dependencyLines.push(`    dependency.${outputNumberForDependency} = 0`);
+                }
+            }
+
+            outputLines.forEach(line => {
+                connectionMap += line + '\n';
+            });
+            dependencyLines.forEach(line => {
+                connectionMap += line + '\n';
+            });
+
+
+        } else if (blockType === 'sink') {
+            connectionMap += `[output ${blockName}]\n`;
+            connectionMap += "format = text\n";
+            connectionMap += `filename = /tmp/feast-output.txt\n\n`;
+
+            const inputCount = parseInt(block.dataset.inputs);
+            for (let j = 0; j < inputCount; j++) {
+                const inputPort = block.querySelector(`.input-ports .port[data-port-number="${j}"]`);
+                const connections = jsPlumbInstance.getConnections({ target: inputPort });
+                if (connections.length > 0) {
+                    const conn = connections[0];
+                    const srcBlock = conn.source.closest('.block');
+                    const srcBlockName = srcBlock.dataset.name;
+                    const srcBlockType = srcBlock.classList.contains('source') ? 'source' : 'ip-block';
+                    const srcPortNum = conn.source.dataset.portNumber;
+
+                    let sinkInputLabel;
+                    if (srcBlockType === 'ip-block' && srcBlock.dataset.bufTxData) {
+                        const txLines = srcBlock.dataset.bufTxData.trim().split('\n');
+                        txLines.shift();
+                        const txBufferNames = [];
+                        txLines.forEach(line => {
+                            const parts = line.trim().split(/\s+/);
+                            if (parts.length >= 2) {
+                                txBufferNames.push(parts[0]);
+                            }
+                        });
+                        if (srcPortNum < txBufferNames.length) {
+                            sinkInputLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${txBufferNames[srcPortNum]}`;
+                        } else {
+                            sinkInputLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${srcPortNum}`;
+                        }
+                    } else {
+                        sinkInputLabel = `${srcBlockName.toUpperCase().replace(/ /g, '_')}_OUTPUT_${srcPortNum}`;
+                    }
+                    const connectionType = conn.getParameter("physical") ? "physical" : "virtual";
+
+                    connectionMap += `    input.${j} =   ${connectionType} ${sinkInputLabel} CSP\n`;
+
+                } else {
+                    connectionMap += `    input.${j} =   (Not Connected)\n`;
+                }
+            }
+        }
+        connectionMap += "\n";
+    }
+
+    const blob = new Blob([connectionMap], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ip_block_connections.txt';
+    a.click();
+});
+
+
+jsPlumbInstance.bind("dblclick", function (connection, originalEvent) {
+        jsPlumbInstance.deleteConnection(connection);
+    });
+
+    window.addEventListener('resize', () => jsPlumbInstance.repaintEverything());
+
+    function updateConnectionStyle(connection) {
+        const isPhysical = connection.getParameter("physical");
+        const connectorStyle = isPhysical
+            ? { stroke: 'var(--physical-connector-color)', strokeWidth: 3 }
+            : { stroke: 'var(--virtual-connector-color)', strokeWidth: 2 };
+
+        connection.setPaintStyle(connectorStyle);
+        connection.repaint();
+    }
+
+    function updateBlockSelectOptions() {
+        const sourceSelect = document.getElementById('source-block-select');
+        const targetSelect = document.getElementById('target-block-select');
+        sourceSelect.innerHTML = '';
+        targetSelect.innerHTML = '';
+
+        document.querySelectorAll('.block').forEach(block => {
+            const option = document.createElement('option');
+            option.value = block.id;
+            option.textContent = block.dataset.name;
+            sourceSelect.appendChild(option.cloneNode(true));
+            targetSelect.appendChild(option);
+        });
+    }
+
+    document.getElementById('auto-connect-btn').addEventListener('click', () => {
+        const sourceBlockId = document.getElementById('source-block-select').value;
+        const targetBlockId = document.getElementById('target-block-select').value;
+
+        if (!sourceBlockId || !targetBlockId || sourceBlockId === targetBlockId) {
+            alert("Please select two different blocks.");
+            return;
+        }
+
+        const sourceBlock = document.getElementById(sourceBlockId);
+        const targetBlock = document.getElementById(targetBlockId);
+
+        const sourceOutputs = parseInt(sourceBlock.dataset.outputs);
+        const targetInputs = parseInt(targetBlock.dataset.inputs);
+
+        if (sourceOutputs !== targetInputs || sourceOutputs === 0) {
+            alert("Number of outputs in the source block must match the number of inputs in the target block and be greater than zero.");
+            return;
+        }
+
+        for (let i = 0; i < sourceOutputs; i++) {
+            const sourcePort = sourceBlock.querySelector(`.output-ports .port[data-port-number="${i}"]`);
+            const targetPort = targetBlock.querySelector(`.input-ports .port[data-port-number="${i}"]`);
+
+            if (sourcePort && targetPort) {
+                jsPlumbInstance.connect({
+                    source: sourcePort,
+                    target: targetPort,
+                    parameters: { physical: false }
+                });
+            }
+        }
+
+        jsPlumbInstance.repaintEverything();
+
+    });
+
+    document.getElementById('custom-connect-btn').addEventListener('click', () => {
+        const sourceBlockId = document.getElementById('source-block-select').value;
+        const targetBlockId = document.getElementById('target-block-select').value;
+        const mappingText = document.getElementById('port-mapping').value;
+
+        if (!sourceBlockId || !targetBlockId || sourceBlockId === targetBlockId) {
+            alert("Please select two different blocks.");
+            return;
+        }
+
+        const sourceBlock = document.getElementById(sourceBlockId);
+        const targetBlock = document.getElementById(targetBlockId);
+
+        try {
+            const mappings = mappingText.split(',').map(s => s.trim()).filter(s => s !== "");
+            mappings.forEach(mapping => {
+                let isPhysical = false;
+                if (mapping.endsWith('p')) {
+                    isPhysical = true;
+                    mapping = mapping.slice(0, -1);
+                }
+                const [sourceRange, targetRange] = mapping.split(':').map(s => s.trim());
+
+                const [sourceStart, sourceEnd] = sourceRange.includes('-')
+                    ? sourceRange.split('-').map(Number)
+                    : [Number(sourceRange), Number(sourceRange)];
+
+                const [targetStart, targetEnd] = targetRange.includes('-')
+                    ? targetRange.split('-').map(Number)
+                    : [Number(targetRange), Number(targetRange)];
+
+                if (isNaN(sourceStart) || isNaN(targetStart) ||
+                    (sourceEnd !== undefined && isNaN(sourceEnd)) ||
+                    (targetEnd !== undefined && isNaN(targetEnd))) {
+                    throw new Error("Invalid mapping format.  Use 'start-end:start-end' or 'single:single'.");
+                }
+
+                const effSourceEnd = (sourceEnd === undefined) ? sourceStart : sourceEnd;
+                const effTargetEnd = (targetEnd === undefined) ? targetStart : targetEnd;
+
+                if ((effSourceEnd - sourceStart) !== (effTargetEnd - targetStart)) {
+                    throw new Error("Source and target ranges must have the same length.");
+                }
+
+                for (let i = 0; i <= (effSourceEnd - sourceStart); i++) {
+                    const sourcePortNum = sourceStart + i;
+                    const targetPortNum = targetStart + i;
+
+                    const sourcePort = sourceBlock.querySelector(`.output-ports .port[data-port-number="${sourcePortNum}"]`);
+                    const targetPort = targetBlock.querySelector(`.input-ports .port[data-port-number="${targetPortNum}"]`);
+
+                    if (!sourcePort) {
+                        console.warn(`Source port ${sourcePortNum} not found on block ${sourceBlockId}.`);
+                        continue;
+                    }
+                    if (!targetPort) {
+                        console.warn(`Target port ${targetPortNum} not found on block ${targetBlockId}.`);
+                        continue;
+                    }
+
+                    const connection = jsPlumbInstance.connect({
+                        source: sourcePort,
+                        target: targetPort,
+                        parameters: { physical: isPhysical }
+                    });
+
+                    const connectorStyle = isPhysical
+                        ? { stroke: 'var(--physical-connector-color)', strokeWidth: 3 }
+                        : { stroke: 'var(--virtual-connector-color)', strokeWidth: 2 };
+
+                    connection.setPaintStyle(connectorStyle);
+                    connection.repaint();
+
+                }
+            });
+
+        } catch (error) {
+            alert(`Error in port mapping: ${error.message}`);
+            console.error(error);
+        }
+
+        jsPlumbInstance.repaintEverything();
+    });
+
+});
+    </script>
+</body>
