@@ -578,7 +578,7 @@ function parseConfig(configText) {
     });
 
     // Create blocks with only connected ports
-    let yPos = 50;
+    let xPos = 50;
     blocks.forEach(block => {
         const connectedInputs = Array.from(block.connectedInputs).sort((a, b) => a - b);
         const connectedOutputs = Array.from(block.connectedOutputs).sort((a, b) => a - b);
@@ -589,10 +589,10 @@ function parseConfig(configText) {
             connectedOutputs,
             connectedInputs,
             100,
-            yPos,
+            xPos,
             block.name.toLowerCase()
         );
-        yPos += Math.max(connectedInputs.length, connectedOutputs.length) * 10 + 5;
+        xPos += Math.max(connectedInputs.length, connectedOutputs.length) * 10 + 5;
     });
 
     // Create connections
