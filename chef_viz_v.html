@@ -578,7 +578,8 @@ function parseConfig(configText) {
     });
 
     // Create blocks with only connected ports
-    let xPos = 50;
+ let xPos = 50; // Initialize xPos for horizontal positioning
+    let yPos = 50; 
     blocks.forEach(block => {
         const connectedInputs = Array.from(block.connectedInputs).sort((a, b) => a - b);
         const connectedOutputs = Array.from(block.connectedOutputs).sort((a, b) => a - b);
@@ -588,11 +589,12 @@ function parseConfig(configText) {
             block.type,
             connectedOutputs,
             connectedInputs,
-            100,
-            xPos,
+            xPos, // Use xPos for horizontal position
+            yPos, // Use yPos for vertical position (can be fixed or adjusted)
             block.name.toLowerCase()
         );
-        xPos += Math.max(connectedInputs.length, connectedOutputs.length) * 10 + 5;
+ 
+        xPos += 20; 
     });
 
     // Create connections
