@@ -217,21 +217,21 @@ document.addEventListener('DOMContentLoaded', function() {
             transform: scale(1.2);
         }
 
-        .port-number {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            left: -25px;
-            transform: translateX(-50%);
-            color: var(--text-color);
-            font-size: 10px;
-            white-space: nowrap;
-            background: var(--panel-bg);
-            padding: 2px 4px;
-            border-radius: 3px;
-            opacity: 0;
-            transition: opacity: 0.2s ease;
-        }
+    .port-number {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    transform: translateX(-50%);
+    color: var(--text-color);
+    font-size: 10px;
+    white-space: nowrap;
+    background: var(--panel-bg);
+    padding: 2px 4px;
+    border-radius: 3px;
+    opacity: 1; /* make it always visible */
+    transition: opacity 0.2s ease;
+}
+
 
         .port:hover .port-number {
             opacity: 1;
