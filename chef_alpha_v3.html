@@ -63,8 +63,31 @@ document.addEventListener('DOMContentLoaded', function() {
             height: 100vh;
             overflow: hidden;
         }
+       .chef-title-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100px; /* Adjust based on your needs */
+    margin-bottom: 15px;
+}
 
-        .container {
+.chef-title-wrapper h2 {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    margin: 0;
+    z-index: 1;
+}
+
+#chef-logo {
+    position: absolute;
+    top: 100px; /* Adjust as needed */
+    right: 100px; /* Adjust as needed */
+    height: 1px; /* Adjust as needed */
+    width: auto;
+    z-index: 1;
+    border: 1px solid red; /* Debug border - remove later */
+} 
+	.container {
             display: flex;
             height: calc(100vh - 40px);
         }
@@ -363,9 +386,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <body>
+
+<div style="position: fixed; bottom: 0px; right: 0px; z-index: 1000;">
+<a href="https://github.com/AbhinavM2000/fpga-automation-toolkit" target="_blank">
+    <img src="logo(1).png" alt="Logo" style="width: 50px; height: auto;">
+</a>
+
+</div>
     <div class="container">
         <div class="tools-panel">
-            <h2>CHEF - Config Helper for Easy FEASTing</h2>
+
+		<h2>CHEF - Config Helper for Easy FEASTing
+
+
+		</h2>
 
              <div class="form-group">
                 <label for="source-outputs">Source Outputs</label>
